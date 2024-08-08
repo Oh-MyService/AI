@@ -59,6 +59,6 @@ jobs:
           docker pull $using:IMAGE;
           docker stop my-app -ea silentlycontinue;
           docker rm my-app -ea silentlycontinue;
-          docker run -d --name my-app -p 27272:27272 $using:IMAGE
+          docker run -d --name ohmyservice_ai -p 27272:27272 $using:IMAGE
       run: |
         sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p 8022 ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} "powershell -Command `\"${{ env.SSH_COMMAND }}\"`"

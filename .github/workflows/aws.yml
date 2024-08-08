@@ -61,5 +61,5 @@ jobs:
 
     - name: Deploy to Windows Server
       run: |
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -P 8022 deploy.ps1 ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:C:/Users/${{ secrets.SSH_USERNAME }}/deploy.ps1
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p 8022 ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} "powershell -File C:/Users/${{ secrets.SSH_USERNAME }}/deploy.ps1"
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -P 8022 deploy.ps1 ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:"C:/Users/${{ secrets.SSH_USERNAME }}/deploy.ps1"
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p 8022 ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} "powershell -File 'C:/Users/${{ secrets.SSH_USERNAME }}/deploy.ps1'"

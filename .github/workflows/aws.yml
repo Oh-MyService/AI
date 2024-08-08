@@ -17,7 +17,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v2
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
@@ -26,12 +26,13 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-west-1
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      run: |
-        aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+    - name: Login to Amazon ECR Public
+      id: login-ecr-public
+      uses: aws-actions/amazon-ecr-login@v1
+      with:
+        registry-type: public
 
-   - name: Build, tag, and push image to Amazon ECR Public
+    - name: Build, tag, and push image to Amazon ECR Public
       id: build-image
       env:
         REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
@@ -42,7 +43,6 @@ jobs:
         docker build --no-cache -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
         docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
         echo "image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-
 
     - name: Install SSH client
       run: sudo apt-get install -y openssh-client

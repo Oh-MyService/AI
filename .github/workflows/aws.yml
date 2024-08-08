@@ -55,8 +55,8 @@ jobs:
         echo '$password = ConvertTo-SecureString "'"${{ secrets.SSH_PASSWORD }}"'" -AsPlainText -Force;' > deploy.ps1
         echo '$credential = New-Object System.Management.Automation.PSCredential ("'"${{ secrets.SSH_USERNAME }}"'", $password);' >> deploy.ps1
         echo 'docker pull '"${{ steps.build-image.outputs.image }}"';' >> deploy.ps1
-        echo 'docker stop ohmyservice_ai -ea silentlycontinue;' >> deploy.ps1
-        echo 'docker rm ohmyservice_ai -ea silentlycontinue;' >> deploy.ps1
+        echo 'docker stop ohmyservice_ai || true;' >> deploy.ps1
+        echo 'docker rm ohmyservice_ai || true;' >> deploy.ps1
         echo 'docker run -d --name ohmyservice_ai -p 27272:27272 '"${{ steps.build-image.outputs.image }}"';' >> deploy.ps1
 
     - name: Deploy to Windows Server

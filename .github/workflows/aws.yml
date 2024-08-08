@@ -50,15 +50,16 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y openssh-client sshpass
 
-    - name: Deploy to Windows Server
-      env:
-        IMAGE: ${{ steps.build-image.outputs.image }}
-        SSH_COMMAND: |
-          \$password = ConvertTo-SecureString "${{ secrets.SSH_PASSWORD }}" -AsPlainText -Force;
-          \$credential = New-Object System.Management.Automation.PSCredential ("${{ secrets.SSH_USERNAME }}", \$password);
-          docker pull $using:IMAGE;
-          docker stop ohmyservice_ai -ea silentlycontinue;
-          docker rm ohmyservice_ai -ea silentlycontinue;
-          docker run -d --name ohmyservice_ai -p 27272:27272 $using:IMAGE
+    - name: Create PowerShell script
       run: |
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p 8022 ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} "powershell -Command `\"${{ env.SSH_COMMAND }}\"`"
+        echo "\$password = ConvertTo-SecureString '${{ secrets.SSH_PASSWORD }}' -AsPlainText -Force;" > deploy.ps1
+        echo "\$credential = New-Object System.Management.Automation.PSCredential ('${{ secrets.SSH_USERNAME }}', \$password);" >> deploy.ps1
+        echo "docker pull ${{ steps.build-image.outputs.image }};" >> deploy.ps1
+        echo "docker stop ohmyservice_ai -ea silentlycontinue;" >> deploy.ps1
+        echo "docker rm ohmyservice_ai -ea silentlycontinue;" >> deploy.ps1
+        echo "docker run -d --name ohmyservice_ai -p 27272:27272 ${{ steps.build-image.outputs.image }};" >> deploy.ps1
+
+    - name: Deploy to Windows Server
+      run: |
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -P 8022 deploy.ps1 ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:C:/Users/${{ secrets.SSH_USERNAME }}/deploy.ps1
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p 8022 ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} "powershell -File C:/Users/${{ secrets.SSH_USERNAME }}/deploy.ps1"

@@ -31,16 +31,18 @@ jobs:
       run: |
         aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
-    - name: Build, tag, and push image to Amazon ECR
+   - name: Build, tag, and push image to Amazon ECR Public
       id: build-image
       env:
-        ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-        ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+        REGISTRY_ALIAS: d0v2k3o3 # 본인의 alias 입력
+        REPOSITORY: ohmyservice_ai # 본인의 repository명 입력
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        docker build --no-cache -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
+        docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
+        echo "image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
 
     - name: Install SSH client
       run: sudo apt-get install -y openssh-client

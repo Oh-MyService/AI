@@ -51,14 +51,12 @@ jobs:
     - name: Deploy to Windows Server
       env:
         IMAGE: ${{ steps.build-image.outputs.image }}
-      run: |
-        pwsh -command "
-        \$password = ConvertTo-SecureString '${{ secrets.SSH_PASSWORD }}' -AsPlainText -Force
-        \$credential = New-Object System.Management.Automation.PSCredential ('${{ secrets.SSH_USERNAME }}', \$password)
-        Invoke-Command -ComputerName '${{ secrets.SERVER_IP }}' -Credential \$credential -ScriptBlock {
+        SSH_COMMAND: |
+          $password = ConvertTo-SecureString "${{ secrets.SSH_PASSWORD }}" -AsPlainText -Force
+          $credential = New-Object System.Management.Automation.PSCredential ("${{ secrets.SSH_USERNAME }}", $password)
           docker pull $using:IMAGE
           docker stop my-app -ea silentlycontinue
           docker rm my-app -ea silentlycontinue
           docker run -d --name my-app -p 27272:27272 $using:IMAGE
-        }
-        "
+      run: |
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} "powershell -Command '${{ env.SSH_COMMAND }}'"

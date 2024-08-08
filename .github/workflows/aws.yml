@@ -52,14 +52,7 @@ jobs:
 
     - name: Create PowerShell script
       run: |
-        echo `
-        \$password = ConvertTo-SecureString '${{ secrets.SSH_PASSWORD }}' -AsPlainText -Force; `
-        \$credential = New-Object System.Management.Automation.PSCredential ('${{ secrets.SSH_USERNAME }}', \$password); `
-        docker pull ${{ steps.build-image.outputs.image }}; `
-        docker stop ohmyservice_ai -ea silentlycontinue; `
-        docker rm ohmyservice_ai -ea silentlycontinue; `
-        docker run -d --name ohmyservice_ai -p 27272:27272 ${{ steps.build-image.outputs.image }}; `
-        > deploy.ps1
+        echo "\$password = ConvertTo-SecureString '${{ secrets.SSH_PASSWORD }}' -AsPlainText -Force; \$credential = New-Object System.Management.Automation.PSCredential ('${{ secrets.SSH_USERNAME }}', \$password); docker pull ${{ steps.build-image.outputs.image }}; docker stop ohmyservice_ai -ea silentlycontinue; docker rm ohmyservice_ai -ea silentlycontinue; docker run -d --name ohmyservice_ai -p 27272:27272 ${{ steps.build-image.outputs.image }}" > deploy.ps1
 
     - name: Deploy to Windows Server
       run: |

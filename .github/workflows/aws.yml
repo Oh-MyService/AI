@@ -1,0 +1,53 @@
+name: Deploy to Local Windows PC
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Log in to Amazon ECR
+      id: ecr-login
+      run: |
+        aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: us-west-2
+
+    - name: Build and tag Docker image
+      run: |
+        docker build -t ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest .
+        docker tag ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:$(git rev-parse --short HEAD)
+
+    - name: Push Docker image to Amazon ECR
+      run: |
+        docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+        docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:$(git rev-parse --short HEAD)
+
+    - name: Deploy to Local Windows PC
+      env:
+        SSH_HOST: ${{ secrets.SSH_HOST }}
+        SSH_USER: ${{ secrets.SSH_USER }}
+        SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+        ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+      run: |
+        pwsh -command "
+        \$password = ConvertTo-SecureString '${{ secrets.SSH_PASSWORD }}' -AsPlainText -Force
+        \$credential = New-Object System.Management.Automation.PSCredential ('${{ secrets.SSH_USER }}', \$password)
+        Invoke-Command -ComputerName '${{ secrets.SSH_HOST }}' -Credential \$credential -ScriptBlock {
+          docker pull $using:ECR_REGISTRY/$using:ECR_REPOSITORY:latest
+          docker stop my-app -ea silentlycontinue
+          docker rm my-app -ea silentlycontinue
+          docker run -d --name my-app -p 27272:27272 $using:ECR_REGISTRY/$using:ECR_REPOSITORY:latest
+        }
+        "

@@ -13,5 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the FastAPI app code into the container
 COPY . .
 
+# Expose port 27272
+EXPOSE 27272
+
 # Start the Celery worker
 CMD ["celery", "-A", "worker", "worker", "--loglevel=info"]

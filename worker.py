@@ -9,10 +9,8 @@ import requests
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 
-# RabbitMQ 설정
+# Celery 설정
 celery = Celery('tasks', broker='pyamqp://guest@43.202.57.225:26262//')
-
-WEB_SERVER_URL = "http://43.202.57.225:28282"  # 웹서버의 IP 주소 또는 호스트명으로 변경
 
 @celery.task
 def generate_image(prompt: str, prompt_id: str):
@@ -30,8 +28,9 @@ def generate_image(prompt: str, prompt_id: str):
         img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
         
         # 서버로 결과 전송
+        WEB_SERVER_URL = "http://웹서버_IP_주소:웹서버_포트/upload_image"  # 웹서버의 IP 주소 또는 호스트명으로 변경
         data = {'prompt_id': prompt_id, 'image': img_str}
-        response = requests.post(f"{WEB_SERVER_URL}/upload_image", json=data)
+        response = requests.post(WEB_SERVER_URL, json=data)
         
         if response.status_code == 200:
             logging.info(f"Image uploaded successfully for prompt_id: {prompt_id}")

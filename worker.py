@@ -1,4 +1,3 @@
-import json
 import logging
 from celery import Celery
 from PIL import Image, ImageDraw
@@ -28,7 +27,7 @@ def generate_image(prompt: str, prompt_id: str):
         img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
         
         # 서버로 결과 전송
-        WEB_SERVER_URL = "http://웹서버_IP_주소:웹서버_포트/upload_image"  # 웹서버의 IP 주소 또는 호스트명으로 변경
+        WEB_SERVER_URL = "http://43.202.57.225:28282/upload_image"  # 웹서버의 IP 주소 또는 호스트명으로 변경
         data = {'prompt_id': prompt_id, 'image': img_str}
         response = requests.post(WEB_SERVER_URL, json=data)
         

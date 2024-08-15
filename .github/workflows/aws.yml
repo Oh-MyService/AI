@@ -9,8 +9,8 @@ env:
   SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
   SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
   AWS_REGION: us-east-1
-  REGISTRY_ALIAS: d0v2k3o3 # 본인의 alias 입력
-  REPOSITORY: ohmyservice_ai # 본인의 repository명 입력
+  REGISTRY_ALIAS: d0v2k3o3
+  REPOSITORY: ohmyservice_ai
 
 jobs:
   deploy:

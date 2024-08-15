@@ -1,9 +1,25 @@
-# 기본적으로 Docker Hub에서 RabbitMQ 이미지를 가져옴
-FROM rabbitmq:management
+# Dockerfile.rabbitmq
 
-# 필요에 따라 추가 설정
-# 예를 들어, 설정 파일 복사
-# COPY rabbitmq.conf /etc/rabbitmq/
+# Base image: Debian or another lightweight image
+FROM debian:latest
 
-# 필요한 포트 공개
+# Install RabbitMQ dependencies
+RUN apt-get update && apt-get install -y curl gnupg apt-transport-https
+
+# Add RabbitMQ signing key
+RUN curl -fsSL https://packages.rabbitmq.com/debian/rabbitmq-release-signing-key.asc | apt-key add -
+
+# Add RabbitMQ repository
+RUN echo "deb https://dl.bintray.com/rabbitmq-erlang/debian buster erlang" | tee /etc/apt/sources.list.d/bintray.rabbitmq.list
+
+# Install RabbitMQ server
+RUN apt-get update && apt-get install -y rabbitmq-server
+
+# Enable the management plugin
+RUN rabbitmq-plugins enable rabbitmq_management
+
+# Expose necessary ports
 EXPOSE 5672 15672
+
+# Start RabbitMQ server
+CMD ["rabbitmq-server"]

@@ -1,7 +1,9 @@
-# Use the official RabbitMQ image as a base
+# 기본적으로 Docker Hub에서 RabbitMQ 이미지를 가져옴
 FROM rabbitmq:management
 
-# Optionally, you can add any custom configuration here
+# 필요에 따라 추가 설정
+# 예를 들어, 설정 파일 복사
 # COPY rabbitmq.conf /etc/rabbitmq/
 
+# 필요한 포트 공개
 EXPOSE 5672 15672

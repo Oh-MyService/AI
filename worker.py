@@ -10,6 +10,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Celery 설정
 celery = Celery('tasks', broker='pyamqp://guest@43.202.57.225:26262//')
+celery.conf.broker_connection_retry_on_startup = True
 
 @celery.task
 def generate_image(prompt: str, prompt_id: str):

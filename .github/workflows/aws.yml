@@ -1,16 +1,14 @@
-name: Deploy to Amazon Lightsail
+name: Deploy FastAPI and RabbitMQ to Amazon Lightsail
 
 on:
   push:
     branches: [ "main" ]
 
 env:
-  SERVER_IP: ${{ secrets.SERVER_IP }}
-  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
-  SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-  REDIS_HOST: "43.202.57.225"
-  REDIS_PORT: "26262"
   AWS_REGION: us-east-1
+  LIGHTSAIL_INSTANCE_IP: ${{ secrets.LIGHTSAIL_INSTANCE_IP }}
+  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
 jobs:
   deploy:
@@ -20,7 +18,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
@@ -35,34 +33,52 @@ jobs:
       with:
         registry-type: public
 
-    - name: Build, tag, and push image to Amazon ECR Public
-      id: build-image
+    - name: Build, tag, and push FastAPI image to Amazon ECR Public
+      id: build-fastapi-image
       env:
         REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
-        REGISTRY_ALIAS: d0v2k3o3 # 본인의 alias 입력
-        REPOSITORY: ohmyservice_ai # 본인의 repository명 입력
+        REGISTRY_ALIAS: d0v2k3o3
+        REPOSITORY: ohmyservice_backend
         IMAGE_TAG: ${{ github.sha }}
       run: |
         docker build --no-cache -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
         docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
-        echo "image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-    - name: Install SSH client and sshpass
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y openssh-client sshpass
+        echo "backend_image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-    - name: Create PowerShell script
-      run: |
-        echo '$password = ConvertTo-SecureString "'"${{ secrets.SSH_PASSWORD }}"'" -AsPlainText -Force;' > deploy.ps1
-        echo '$credential = New-Object System.Management.Automation.PSCredential ("'"${{ secrets.SSH_USERNAME }}"'", $password);' >> deploy.ps1
-        echo 'docker pull '"${{ steps.build-image.outputs.image }}"';' >> deploy.ps1
-        echo 'if (docker ps -a --format "{{.Names}}" | findstr ohmyservice_ai) { docker stop ohmyservice_ai; docker rm ohmyservice_ai }' >> deploy.ps1
-        echo 'docker run -d --name ohmyservice_ai -p 27272:27272 -e REDIS_HOST=${{ env.REDIS_HOST }} -e REDIS_PORT=${{ env.REDIS_PORT }} '"${{ steps.build-image.outputs.image }}"';' >> deploy.ps1
-        echo 'Start-Sleep -Seconds 10;' >> deploy.ps1
-        echo 'docker logs ohmyservice_ai;' >> deploy.ps1
+    - name: Install SSH client
+      run: sudo apt-get install -y openssh-client
 
-    - name: Deploy to Windows Server
+    - name: Copy SSH key
       run: |
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 deploy.ps1 "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:C:/Users/${{ secrets.SSH_USERNAME }}/deploy.ps1"
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 8022 "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}" powershell -File "C:/Users/${{ secrets.SSH_USERNAME }}/deploy.ps1"
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+
+    - name: Copy .env file to Lightsail instance
+      run: |
+        scp -o StrictHostKeyChecking=no .env $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:/home/$SSH_USERNAME/.env
+
+    - name: Deploy to Amazon Lightsail
+      env:
+        BACKEND_IMAGE: ${{ steps.build-fastapi-image.outputs.backend_image }}
+        RABBITMQ_IMAGE: rabbitmq:management # 기본 RabbitMQ 이미지를 사용
+      run: |
+        ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP << EOF
+          BACKEND_IMAGE=${BACKEND_IMAGE}
+          RABBITMQ_IMAGE=${RABBITMQ_IMAGE}
+          
+          # Pull the images
+          sudo docker pull \\$BACKEND_IMAGE
+          sudo docker pull \\$RABBITMQ_IMAGE
+
+          # Stop and remove existing containers
+          sudo docker stop fastapi_app || true
+          sudo docker rm fastapi_app || true
+          sudo docker stop rabbitmq || true
+          sudo docker rm rabbitmq || true
+
+          # Run new containers
+          sudo docker run -d --name fastapi_app --env-file /home/$SSH_USERNAME/.env -p 27272:8000 \\$BACKEND_IMAGE
+          sudo docker run -d --name rabbitmq -p 22222:15672 -p 23232:5672 \\$RABBITMQ_IMAGE
+        EOF

@@ -12,12 +12,10 @@ logging.basicConfig(level=logging.INFO)
 celery = Celery(
     'worker', 
     broker='pyamqp://guest@43.202.57.225:26262//',
-    backend='rpc://',  # 작업 결과를 추적할 백엔드 설정
 )
 
 celery.conf.update(
     broker_connection_retry_on_startup=True,
-    result_backend='rpc://',  # 결과 백엔드를 설정하여 작업 결과 추적
     task_serializer='json',   # 작업 데이터 직렬화 형식을 JSON으로 설정
     accept_content=['json'],  # JSON 형식만 허용
     result_serializer='json',  # 결과 직렬화 형식을 JSON으로 설정

@@ -22,47 +22,31 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-
-    - name: Login to Amazon ECR Public
-      id: login-ecr-public
-      uses: aws-actions/amazon-ecr-login@v1
-      with:
-        registry-type: public
-
-    - name: Build, tag, and push image to Amazon ECR Public
-      id: build-image
-      env:
-        REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        docker build --no-cache -t $REGISTRY/${{ env.REGISTRY_ALIAS }}/${{ env.REPOSITORY }}:$IMAGE_TAG .
-        docker push $REGISTRY/${{ env.REGISTRY_ALIAS }}/${{ env.REPOSITORY }}:$IMAGE_TAG
-        echo "image=$REGISTRY/${{ env.REGISTRY_ALIAS }}/${{ env.REPOSITORY }}:$IMAGE_TAG" >> $GITHUB_OUTPUT
-
     - name: Install SSH client and sshpass
       run: |
         sudo apt-get update
         sudo apt-get install -y openssh-client sshpass
 
-    - name: Create PowerShell script
+    - name: Build Docker images locally
+      run: |
+        docker build --no-cache -t ${REGISTRY_ALIAS}/${REPOSITORY}:fastapi-${{ github.sha }} .
+        docker build --no-cache -t ${REGISTRY_ALIAS}/${REPOSITORY}:celery-${{ github.sha }} -f Dockerfile.celery .
+        docker build --no-cache -t ${REGISTRY_ALIAS}/${REPOSITORY}:rabbitmq-${{ github.sha }} -f Dockerfile.rabbitmq .
+
+    - name: Create PowerShell script for Docker Compose deployment
       run: |
         echo '$password = ConvertTo-SecureString "'"${{ secrets.SSH_PASSWORD }}"'" -AsPlainText -Force;' > deploy.ps1
         echo '$credential = New-Object System.Management.Automation.PSCredential ("'"${{ secrets.SSH_USERNAME }}"'", $password);' >> deploy.ps1
-        echo 'docker pull '"${{ steps.build-image.outputs.image }}"';' >> deploy.ps1
         echo 'docker-compose down' >> deploy.ps1
-        echo 'docker-compose pull' >> deploy.ps1
         echo 'docker-compose up -d' >> deploy.ps1
         echo 'Start-Sleep -Seconds 10;' >> deploy.ps1
         echo 'docker-compose logs;' >> deploy.ps1
 
-    - name: Deploy to Windows Server
+    - name: Copy Docker Compose file and PowerShell script to Windows Server
       run: |
         sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 docker-compose.yml "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:C:/Users/${{ secrets.SSH_USERNAME }}/docker-compose.yml"
         sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 deploy.ps1 "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:C:/Users/${{ secrets.SSH_USERNAME }}/deploy.ps1"
+
+    - name: Deploy to Windows Server
+      run: |
         sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 8022 "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}" powershell -File "C:/Users/${{ secrets.SSH_USERNAME }}/deploy.ps1"

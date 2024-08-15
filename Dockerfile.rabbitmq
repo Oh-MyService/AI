@@ -1,0 +1,7 @@
+# Use the official RabbitMQ image as a base
+FROM rabbitmq:management
+
+# Optionally, you can add any custom configuration here
+# COPY rabbitmq.conf /etc/rabbitmq/
+
+EXPOSE 5672 15672

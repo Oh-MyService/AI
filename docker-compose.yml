@@ -14,7 +14,9 @@ services:
       - app-network
 
   rabbitmq:
-    image: rabbitmq:management
+    build:
+      context: .
+      dockerfile: Dockerfile.rabbitmq
     container_name: rabbitmq
     ports:
       - "22222:15672"

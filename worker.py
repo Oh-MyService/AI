@@ -4,8 +4,6 @@ from PIL import Image, ImageDraw
 import io
 import base64
 import requests
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.poolmanager import PoolManager
 
 # 로깅 설정
 logging.basicConfig(level=logging.DEBUG)
@@ -13,7 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 # Celery 앱 및 설정
 celery = Celery(
     'worker', 
-    broker='pyamqp://guest:guest@43.202.57.225:26262//',
+    broker='pyamqp://guest@43.202.57.225:26262//',
 )
 
 celery.conf.update(
@@ -24,19 +22,6 @@ celery.conf.update(
     timezone='Asia/Seoul',  # 타임존을 서울로 설정
     enable_utc=True,  # UTC 사용 설정
 )
-
-class SourcePortAdapter(HTTPAdapter):
-    def __init__(self, source_port, **kwargs):
-        self.source_port = source_port
-        super().__init__(**kwargs)
-
-    def init_poolmanager(self, connections, maxsize, block=False):
-        self.poolmanager = PoolManager(
-            num_pools=connections,
-            maxsize=maxsize,
-            block=block,
-            source_address=('', self.source_port)  # Bind to the source port
-        )
 
 @celery.task(bind=True)
 def generate_image(self, prompt: str, prompt_id: str):
@@ -57,6 +42,7 @@ def generate_image(self, prompt: str, prompt_id: str):
             buffered = io.BytesIO()
             image.save(buffered, format="JPEG")
             img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+            logging.debug(f"Base64 Encoded Image: {img_str[:100]}...")  # 이미지 문자열의 일부만 로그에 출력
         except Exception as encode_error:
             logging.error(f"Error encoding image to base64: {encode_error}")
             raise self.retry(exc=encode_error, countdown=10, max_retries=3)
@@ -66,12 +52,7 @@ def generate_image(self, prompt: str, prompt_id: str):
             WEB_SERVER_URL = "http://43.202.57.225:28282/upload_image"
             data = {'prompt_id': prompt_id, 'image': img_str}
             
-            # 특정 포트에서 요청을 보내기 위한 설정
             session = requests.Session()
-            adapter = SourcePortAdapter(source_port=27272)
-            session.mount('http://', adapter)
-            session.mount('https://', adapter)
-            
             response = session.post(WEB_SERVER_URL, json=data)
         
             if response.status_code == 200:

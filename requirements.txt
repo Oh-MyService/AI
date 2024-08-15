@@ -2,3 +2,5 @@ celery
 pillow
 requests
 kombu  # RabbitMQ를 위한 패키지 추가
+
+flower #Celery의 실시간 모니터링 툴

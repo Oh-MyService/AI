@@ -9,8 +9,8 @@ env:
   SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
   SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
   AWS_REGION: us-east-1
-  REGISTRY_ALIAS: d0v2k3o3
-  REPOSITORY: ohmyservice_ai
+  REGISTRY_ALIAS: d0v2k3o3 # 본인의 alias 입력
+  REPOSITORY: ohmyservice_ai # 본인의 repository명 입력
 
 jobs:
   deploy:
@@ -29,9 +29,9 @@ jobs:
 
     - name: Build Docker images locally
       run: |
-        docker build --no-cache -t ${REGISTRY_ALIAS}/${REPOSITORY}:fastapi-${{ github.sha }} .
-        docker build --no-cache -t ${REGISTRY_ALIAS}/${REPOSITORY}:celery-${{ github.sha }} -f Dockerfile.celery .
-        docker build --no-cache -t ${REGISTRY_ALIAS}/${REPOSITORY}:rabbitmq-${{ github.sha }} -f Dockerfile.rabbitmq .
+        docker build --no-cache -t ${{ env.REGISTRY_ALIAS }}/${{ env.REPOSITORY }}:fastapi-${{ github.sha }} .
+        docker build --no-cache -t ${{ env.REGISTRY_ALIAS }}/${{ env.REPOSITORY }}:celery-${{ github.sha }} -f Dockerfile.celery .
+        docker build --no-cache -t ${{ env.REGISTRY_ALIAS }}/${{ env.REPOSITORY }}:rabbitmq-${{ github.sha }} -f Dockerfile.rabbitmq .
 
     - name: Create PowerShell script for Docker Compose deployment
       run: |
@@ -45,6 +45,7 @@ jobs:
     - name: Copy Docker Compose file and PowerShell script to Windows Server
       run: |
         sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 docker-compose.yml "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:C:/Users/${{ secrets.SSH_USERNAME }}/docker-compose.yml"
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 Dockerfile.rabbitmq "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:C:/Users/${{ secrets.SSH_USERNAME }}/Dockerfile.rabbitmq"
         sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 deploy.ps1 "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:C:/Users/${{ secrets.SSH_USERNAME }}/deploy.ps1"
 
     - name: Deploy to Windows Server

@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.DEBUG)
 # Celery 앱 및 설정
 celery = Celery(
     'worker', 
-    broker='pyamqp://guest@43.202.57.225:26262//',
+    broker='pyamqp://guest:guest@43.202.57.225:26262//',
 )
 
 celery.conf.update(

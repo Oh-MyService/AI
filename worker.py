@@ -1,5 +1,6 @@
 import logging
 from celery import Celery
+from worker import generate_image
 from PIL import Image, ImageDraw
 import io
 import base64
@@ -9,7 +10,7 @@ import requests
 logging.basicConfig(level=logging.INFO)
 
 # Celery 설정
-celery = Celery('tasks', broker='pyamqp://guest@43.202.57.225:26262//')
+celery = Celery('worker', broker='pyamqp://guest@43.202.57.225:26262//')
 celery.conf.broker_connection_retry_on_startup = True
 
 @celery.task

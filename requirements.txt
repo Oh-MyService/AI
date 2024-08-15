@@ -1,6 +1,4 @@
-celery
+fastapi
+uvicorn[standard]
 pillow
-requests
-kombu  # RabbitMQ를 위한 패키지 추가
-
-flower #Celery의 실시간 모니터링 툴
+celery  # Celery와 Redis 또는 RabbitMQ 지원

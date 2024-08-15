@@ -1,4 +1,4 @@
-name: Deploy FastAPI and RabbitMQ to Amazon Lightsail
+name: Deploy FastAPI and Celery to Amazon Lightsail
 
 on:
   push:
@@ -33,18 +33,24 @@ jobs:
       with:
         registry-type: public
 
-    - name: Build, tag, and push FastAPI image to Amazon ECR Public
-      id: build-fastapi-image
+    - name: Build, tag, and push FastAPI and Celery images to Amazon ECR Public
+      id: build-images
       env:
         REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
-        REGISTRY_ALIAS: d0v2k3o3
-        REPOSITORY: ohmyservice_backend
+        FASTAPI_REPOSITORY: ohmyservice_backend
+        CELERY_REPOSITORY: ohmyservice_celery
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        docker build --no-cache -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
-        docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
+        # Build and push FastAPI image
+        docker build --no-cache -t $REGISTRY/$FASTAPI_REPOSITORY:$IMAGE_TAG .
+        docker push $REGISTRY/$FASTAPI_REPOSITORY:$IMAGE_TAG
 
-        echo "backend_image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        # Build and push Celery image
+        docker build --no-cache -t $REGISTRY/$CELERY_REPOSITORY:$IMAGE_TAG -f Dockerfile.celery .
+        docker push $REGISTRY/$CELERY_REPOSITORY:$IMAGE_TAG
+
+        echo "backend_image=$REGISTRY/$FASTAPI_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        echo "celery_image=$REGISTRY/$CELERY_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
     - name: Install SSH client
       run: sudo apt-get install -y openssh-client
@@ -61,24 +67,30 @@ jobs:
 
     - name: Deploy to Amazon Lightsail
       env:
-        BACKEND_IMAGE: ${{ steps.build-fastapi-image.outputs.backend_image }}
-        RABBITMQ_IMAGE: rabbitmq:management # 기본 RabbitMQ 이미지를 사용
+        BACKEND_IMAGE: ${{ steps.build-images.outputs.backend_image }}
+        CELERY_IMAGE: ${{ steps.build-images.outputs.celery_image }}
+        RABBITMQ_IMAGE: rabbitmq:management
       run: |
         ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP << EOF
           BACKEND_IMAGE=${BACKEND_IMAGE}
+          CELERY_IMAGE=${CELERY_IMAGE}
           RABBITMQ_IMAGE=${RABBITMQ_IMAGE}
-          
+
           # Pull the images
           sudo docker pull \\$BACKEND_IMAGE
+          sudo docker pull \\$CELERY_IMAGE
           sudo docker pull \\$RABBITMQ_IMAGE
 
           # Stop and remove existing containers
           sudo docker stop fastapi_app || true
           sudo docker rm fastapi_app || true
+          sudo docker stop celery_worker || true
+          sudo docker rm celery_worker || true
           sudo docker stop rabbitmq || true
           sudo docker rm rabbitmq || true
 
           # Run new containers
           sudo docker run -d --name fastapi_app --env-file /home/$SSH_USERNAME/.env -p 27272:8000 \\$BACKEND_IMAGE
+          sudo docker run -d --name celery_worker --env-file /home/$SSH_USERNAME/.env \\$CELERY_IMAGE celery -A celery_app worker --loglevel=info
           sudo docker run -d --name rabbitmq -p 22222:15672 -p 23232:5672 \\$RABBITMQ_IMAGE
         EOF

@@ -1,6 +1,5 @@
 import logging
 from celery import Celery
-from worker import generate_image
 from PIL import Image, ImageDraw
 import io
 import base64
@@ -53,4 +52,3 @@ def generate_image(prompt: str, prompt_id: str):
     except Exception as e:
         logging.error(f"Unhandled error in generating image: {e}")
         raise e
-

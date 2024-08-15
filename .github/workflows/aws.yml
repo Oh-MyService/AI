@@ -1,4 +1,4 @@
-name: Deploy to Windows Server without Docker Hub
+name: Deploy to Amazon Lightsail
 
 on:
   push:
@@ -9,8 +9,6 @@ env:
   SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
   SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
   AWS_REGION: us-east-1
-  REGISTRY_ALIAS: d0v2k3o3
-  REPOSITORY: ohmyservice_ai
 
 jobs:
   deploy:
@@ -22,41 +20,41 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR Public
+      id: login-ecr-public
+      uses: aws-actions/amazon-ecr-login@v1
+      with:
+        registry-type: public
+
+    - name: Build, tag, and push image to Amazon ECR Public
+      id: build-image
+      env:
+        REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+        REGISTRY_ALIAS: d0v2k3o3 # 본인의 alias 입력
+        REPOSITORY: ohmyservice_ai # 본인의 repository명 입력
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build --no-cache -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:fastapi-$IMAGE_TAG -f Dockerfile.fastapi .
+        docker build --no-cache -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:celery-$IMAGE_TAG -f Dockerfile.celery .
+        docker build --no-cache -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:rabbitmq-$IMAGE_TAG -f Dockerfile.rabbitmq .
+        docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:fastapi-$IMAGE_TAG
+        docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:celery-$IMAGE_TAG
+        docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:rabbitmq-$IMAGE_TAG
+        echo "image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:fastapi-$IMAGE_TAG" >> $GITHUB_OUTPUT
+
     - name: Install SSH client and sshpass
       run: |
         sudo apt-get update
         sudo apt-get install -y openssh-client sshpass
 
-    - name: Build Docker images locally
-      run: |
-        docker build --no-cache -t ${{ env.REPOSITORY }}:fastapi-${{ github.sha }} .
-        docker build --no-cache -t ${{ env.REPOSITORY }}:celery-${{ github.sha }} -f Dockerfile.celery .
-        docker build --no-cache -t ${{ env.REPOSITORY }}:rabbitmq-${{ github.sha }} -f Dockerfile.rabbitmq .
-
-    - name: Save Docker images to tar files
-      run: |
-        docker save -o fastapi_image.tar ${{ env.REPOSITORY }}:fastapi-${{ github.sha }}
-        docker save -o celery_image.tar ${{ env.REPOSITORY }}:celery-${{ github.sha }}
-        docker save -o rabbitmq_image.tar ${{ env.REPOSITORY }}:rabbitmq-${{ github.sha }}
-
-    - name: Copy Docker images to Windows Server
-      run: |
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 fastapi_image.tar "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:C:/Users/${{ secrets.SSH_USERNAME }}/fastapi_image.tar"
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 celery_image.tar "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:C:/Users/${{ secrets.SSH_USERNAME }}/celery_image.tar"
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 rabbitmq_image.tar "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:C:/Users/${{ secrets.SSH_USERNAME }}/rabbitmq_image.tar"
-
-    - name: Create PowerShell script for Docker Compose deployment
-      run: |
-        echo '$password = ConvertTo-SecureString "'"${{ secrets.SSH_PASSWORD }}"'" -AsPlainText -Force;' > deploy.ps1
-        echo '$credential = New-Object System.Management.Automation.PSCredential ("'"${{ secrets.SSH_USERNAME }}"'", $password);' >> deploy.ps1
-        echo 'docker load -i C:/Users/${{ secrets.SSH_USERNAME }}/fastapi_image.tar' >> deploy.ps1
-        echo 'docker load -i C:/Users/${{ secrets.SSH_USERNAME }}/celery_image.tar' >> deploy.ps1
-        echo 'docker load -i C:/Users/${{ secrets.SSH_USERNAME }}/rabbitmq_image.tar' >> deploy.ps1
-        echo 'docker-compose down' >> deploy.ps1
-        echo 'docker-compose up -d' >> deploy.ps1
-        echo 'Start-Sleep -Seconds 10;' >> deploy.ps1
-        echo 'docker-compose logs;' >> deploy.ps1
-
     - name: Deploy to Windows Server
       run: |
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 8022 "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}" powershell -File "C:/Users/${{ secrets.SSH_USERNAME }}/deploy.ps1"
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 docker-compose.yml "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:/path/to/deploy"
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 8022 "${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}" docker-compose up -d

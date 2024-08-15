@@ -1,29 +1,25 @@
-from fastapi import FastAPI, BackgroundTasks, HTTPException
-from celery.result import AsyncResult
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from celery_app import create_image_task
+from celery.result import AsyncResult
+from celery_app import generate_and_send_image, app as celery_app
 
 app = FastAPI()
 
 class ImageRequest(BaseModel):
-    text: str
+    image_data: str
 
 @app.post("/generate-image/")
-def generate_image(request: ImageRequest, background_tasks: BackgroundTasks):
-    task = create_image_task.delay(request.text)
-    background_tasks.add_task(check_task_status, task.id)
-    return {"task_id": task.id, "status": "Processing"}
+async def generate_image(request: ImageRequest):
+    # Celery task 호출
+    task = generate_and_send_image.delay(request.image_data)
+    return {"task_id": task.id}
 
-@app.get("/result/{task_id}")
-def get_result(task_id: str):
-    task_result = AsyncResult(task_id)
-    if task_result.state == 'SUCCESS':
-        return {"task_id": task_id, "status": task_result.state, "result": task_result.result}
+@app.get("/task-status/{task_id}")
+async def get_task_status(task_id: str):
+    task_result = AsyncResult(task_id, app=celery_app)
+    if task_result.state == 'PENDING':
+        return {"status": "PENDING"}
     elif task_result.state == 'FAILURE':
-        raise HTTPException(status_code=400, detail="Task failed")
+        return {"status": "FAILURE", "details": str(task_result.info)}
     else:
-        return {"task_id": task_id, "status": task_result.state}
-
-def check_task_status(task_id: str):
-    task_result = AsyncResult(task_id)
-    # 여기에 추가적인 로직을 넣을 수 있습니다. 예를 들어, 결과를 데이터베이스에 저장하거나 알림을 보내는 등의 작업.
+        return {"status": task_result.state, "result": task_result.result}

@@ -1,25 +1,36 @@
-# Dockerfile.rabbitmq
-
-# Base image: Debian or another lightweight image
+# 기본 Debian 이미지를 사용합니다.
 FROM debian:latest
 
-# Install RabbitMQ dependencies
-RUN apt-get update && apt-get install -y curl gnupg apt-transport-https
+# 필수 패키지 설치
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    gnupg \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Add RabbitMQ signing key
-RUN curl -fsSL https://packages.rabbitmq.com/debian/rabbitmq-release-signing-key.asc | apt-key add -
+# Erlang 설치
+RUN wget https://packages.erlang-solutions.com/erlang/debian/pool/esl-erlang_24.3.4.3-1~debian~bullseye_amd64.deb \
+    && dpkg -i esl-erlang_24.3.4.3-1~debian~bullseye_amd64.deb \
+    && rm esl-erlang_24.3.4.3-1~debian~bullseye_amd64.deb
 
-# Add RabbitMQ repository
-RUN echo "deb https://dl.bintray.com/rabbitmq-erlang/debian buster erlang" | tee /etc/apt/sources.list.d/bintray.rabbitmq.list
+# RabbitMQ 설치
+RUN wget https://github.com/rabbitmq/rabbitmq-server/releases/download/v3.9.13/rabbitmq-server_3.9.13-1_all.deb \
+    && dpkg -i rabbitmq-server_3.9.13-1_all.deb \
+    && rm rabbitmq-server_3.9.13-1_all.deb
 
-# Install RabbitMQ server
-RUN apt-get update && apt-get install -y rabbitmq-server
-
-# Enable the management plugin
+# RabbitMQ 관리 콘솔 플러그인 활성화
 RUN rabbitmq-plugins enable rabbitmq_management
 
-# Expose necessary ports
-EXPOSE 5672 15672
+# RabbitMQ 기본 사용자 및 권한 설정
+RUN rabbitmqctl add_user user password && \
+    rabbitmqctl set_user_tags user administrator && \
+    rabbitmqctl set_permissions -p / user ".*" ".*" ".*"
 
-# Start RabbitMQ server
+# 포트 설정
+EXPOSE 23232 23233
+
+# RabbitMQ 서버 시작 명령
 CMD ["rabbitmq-server"]

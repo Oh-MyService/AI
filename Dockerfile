@@ -13,8 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the project code into the container
 COPY . .
 
-# Expose any necessary ports (if needed)
-# EXPOSE 27272  # Uncomment if Celery needs to expose any ports
+# Expose the port for outgoing requests if needed (primarily for documentation)
+EXPOSE 27272  # Celery won't expose this port but it's documented here
 
 # Start the Celery worker
 CMD ["celery", "-A", "worker", "worker", "--loglevel=info", "--concurrency=1", "-Q", "default"]

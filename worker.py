@@ -4,6 +4,8 @@ from PIL import Image, ImageDraw
 import io
 import base64
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.poolmanager import PoolManager
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +24,19 @@ celery.conf.update(
     timezone='Asia/Seoul',  # 타임존을 서울로 설정
     enable_utc=True,  # UTC 사용 설정
 )
+
+class SourcePortAdapter(HTTPAdapter):
+    def __init__(self, source_port, **kwargs):
+        self.source_port = source_port
+        super().__init__(**kwargs)
+
+    def init_poolmanager(self, connections, maxsize, block=False):
+        self.poolmanager = PoolManager(
+            num_pools=connections,
+            maxsize=maxsize,
+            block=block,
+            source_address=('', self.source_port)  # Bind to the source port
+        )
 
 @celery.task(bind=True)
 def generate_image(self, prompt: str, prompt_id: str):
@@ -50,7 +65,14 @@ def generate_image(self, prompt: str, prompt_id: str):
         try:
             WEB_SERVER_URL = "http://43.202.57.225:28282/upload_image"
             data = {'prompt_id': prompt_id, 'image': img_str}
-            response = requests.post(WEB_SERVER_URL, json=data)
+            
+            # 특정 포트에서 요청을 보내기 위한 설정
+            session = requests.Session()
+            adapter = SourcePortAdapter(source_port=27272)
+            session.mount('http://', adapter)
+            session.mount('https://', adapter)
+            
+            response = session.post(WEB_SERVER_URL, json=data)
         
             if response.status_code == 200:
                 logging.info(f"Image uploaded successfully for prompt_id: {prompt_id}")

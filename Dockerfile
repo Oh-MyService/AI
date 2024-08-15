@@ -17,4 +17,5 @@ COPY . .
 EXPOSE 27272
 
 # Start the Celery worker
-CMD ["celery", "-A", "worker", "worker", "--loglevel=info", "--concurrency=1", "-Q", "default"]
+CMD ["celery", "-A", "worker", "worker", "--loglevel=info", "--logfile=/var/log/celery.log", "--concurrency=1", "-Q", "default"]
+

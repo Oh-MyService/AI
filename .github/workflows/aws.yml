@@ -68,25 +68,25 @@ jobs:
         CELERY_IMAGE: ${{ steps.build-celery-image.outputs.celery_image }}
         RABBITMQ_IMAGE: rabbitmq:management
       run: |
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 docker-compose.yml $SSH_USERNAME@$SERVER_IP:C:/Users/k-net/Desktop/박천수/docker-compose.yml
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 docker-compose.yml $SSH_USERNAME@$SERVER_IP:"C:/Users/k-net/Desktop/docker-compose.yml"
         sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 8022 $SSH_USERNAME@$SERVER_IP << EOF
           set FASTAPI_IMAGE=${FASTAPI_IMAGE}
           set CELERY_IMAGE=${CELERY_IMAGE}
           set RABBITMQ_IMAGE=${RABBITMQ_IMAGE}
           
-          # Pull the images
+          REM Pull the images
           docker pull %FASTAPI_IMAGE%
           docker pull %CELERY_IMAGE%
           docker pull %RABBITMQ_IMAGE%
           
-          # Stop and remove existing containers
-          docker stop fastapi_app || true
-          docker rm fastapi_app || true
-          docker stop celery_worker || true
-          docker rm celery_worker || true
-          docker stop rabbitmq || true
-          docker rm rabbitmq || true
+          REM Stop and remove existing containers
+          docker stop fastapi_app || exit 0
+          docker rm fastapi_app || exit 0
+          docker stop celery_worker || exit 0
+          docker rm celery_worker || exit 0
+          docker stop rabbitmq || exit 0
+          docker rm rabbitmq || exit 0
           
-          # Run new containers using docker-compose
-          docker-compose -f C:/Users/k-net/Desktop/박천수/docker-compose.yml up -d
+          REM Run new containers using docker-compose
+          docker-compose -f "C:/Users/k-net/Desktop/docker-compose.yml" up -d
         EOF

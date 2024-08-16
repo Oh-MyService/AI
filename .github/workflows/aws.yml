@@ -1,4 +1,4 @@
-name: Deploy FastAPI, Celery, and RabbitMQ to Amazon Lightsail
+name: Deploy FastAPI, Celery, and RabbitMQ to Windows Server
 
 on:
   push:
@@ -6,9 +6,9 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  LIGHTSAIL_INSTANCE_IP: ${{ secrets.LIGHTSAIL_INSTANCE_IP }}
   SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
-  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+  SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+  SERVER_IP: ${{ secrets.SERVER_IP }}
 
 jobs:
   deploy:
@@ -57,45 +57,36 @@ jobs:
         docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:celery-$IMAGE_TAG
         echo "celery_image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:celery-$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-    - name: Install SSH client
-      run: sudo apt-get install -y openssh-client
-
-    - name: Copy SSH key
+    - name: Install SSH client and sshpass
       run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
+        sudo apt-get update
+        sudo apt-get install -y openssh-client sshpass
 
-    - name: Copy .env file to Lightsail instance
-      run: |
-        scp -o StrictHostKeyChecking=no .env $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:/home/$SSH_USERNAME/.env
-
-    - name: Deploy to Amazon Lightsail
+    - name: Deploy to Windows Server
       env:
         FASTAPI_IMAGE: ${{ steps.build-fastapi-image.outputs.fastapi_image }}
         CELERY_IMAGE: ${{ steps.build-celery-image.outputs.celery_image }}
         RABBITMQ_IMAGE: rabbitmq:management
       run: |
-        ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP << EOF
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 22 docker-compose.yml $SSH_USERNAME@$SERVER_IP:/path/to/deploy/docker-compose.yml
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 $SSH_USERNAME@$SERVER_IP << EOF
           FASTAPI_IMAGE=${FASTAPI_IMAGE}
           CELERY_IMAGE=${CELERY_IMAGE}
           RABBITMQ_IMAGE=${RABBITMQ_IMAGE}
           
           # Pull the images
-          sudo docker pull \\$FASTAPI_IMAGE
-          sudo docker pull \\$CELERY_IMAGE
-          sudo docker pull \\$RABBITMQ_IMAGE
+          docker pull \\$FASTAPI_IMAGE
+          docker pull \\$CELERY_IMAGE
+          docker pull \\$RABBITMQ_IMAGE
           
           # Stop and remove existing containers
-          sudo docker stop fastapi_app || true
-          sudo docker rm fastapi_app || true
-          sudo docker stop celery_worker || true
-          sudo docker rm celery_worker || true
-          sudo docker stop rabbitmq || true
-          sudo docker rm rabbitmq || true
+          docker stop fastapi_app || true
+          docker rm fastapi_app || true
+          docker stop celery_worker || true
+          docker rm celery_worker || true
+          docker stop rabbitmq || true
+          docker rm rabbitmq || true
           
-          # Run new containers
-          sudo docker run -d --name fastapi_app --env-file /home/$SSH_USERNAME/.env -p 28282:8000 \\$FASTAPI_IMAGE
-          sudo docker run -d --name celery_worker --env-file /home/$SSH_USERNAME/.env \\$CELERY_IMAGE
-          sudo docker run -d --name rabbitmq -p 25672:15672 -p 26262:5672 \\$RABBITMQ_IMAGE
+          # Run new containers using docker-compose
+          docker-compose -f /path/to/deploy/docker-compose.yml up -d
         EOF

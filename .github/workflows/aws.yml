@@ -88,5 +88,5 @@ jobs:
           docker rm rabbitmq || true
           
           # Run new containers using docker-compose
-          docker-compose -f /path/to/deploy/docker-compose.yml up -d
+          docker-compose -f C:/Users/k-net/Desktop/박천수/docker-compose.yml/docker-compose.yml up -d
         EOF

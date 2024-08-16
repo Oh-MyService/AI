@@ -68,8 +68,8 @@ jobs:
         CELERY_IMAGE: ${{ steps.build-celery-image.outputs.celery_image }}
         RABBITMQ_IMAGE: rabbitmq:management
       run: |
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 22 docker-compose.yml $SSH_USERNAME@$SERVER_IP:/path/to/deploy/docker-compose.yml
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 $SSH_USERNAME@$SERVER_IP << EOF
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 docker-compose.yml $SSH_USERNAME@$SERVER_IP:/path/to/deploy/docker-compose.yml
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 8022 $SSH_USERNAME@$SERVER_IP << EOF
           FASTAPI_IMAGE=${FASTAPI_IMAGE}
           CELERY_IMAGE=${CELERY_IMAGE}
           RABBITMQ_IMAGE=${RABBITMQ_IMAGE}

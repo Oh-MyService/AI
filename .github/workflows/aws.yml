@@ -68,18 +68,24 @@ jobs:
         CELERY_IMAGE: ${{ steps.build-celery-image.outputs.celery_image }}
         RABBITMQ_IMAGE: rabbitmq:management
       run: |
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 docker-compose.yml $SSH_USERNAME@$SERVER_IP:"C:/Users/k-net/Desktop/docker-compose.yml"
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 docker-compose.yml $SSH_USERNAME@$SERVER_IP:"C:/Users/k-net/Desktop/parkchunsoo/docker-compose.yml"
         sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 8022 $SSH_USERNAME@$SERVER_IP << EOF
           docker pull $FASTAPI_IMAGE
           docker pull $CELERY_IMAGE
           docker pull $RABBITMQ_IMAGE
           
-          docker ps -a --format '{{.Names}}' | grep -Eq "^fastapi_app\$" && docker stop fastapi_app
-          docker ps -a --format '{{.Names}}' | grep -Eq "^fastapi_app\$" && docker rm fastapi_app
-          docker ps -a --format '{{.Names}}' | grep -Eq "^celery_worker\$" && docker stop celery_worker
-          docker ps -a --format '{{.Names}}' | grep -Eq "^celery_worker\$" && docker rm celery_worker
-          docker ps -a --format '{{.Names}}' | grep -Eq "^rabbitmq\$" && docker stop rabbitmq
-          docker ps -a --format '{{.Names}}' | grep -Eq "^rabbitmq\$" && docker rm rabbitmq
+          if (docker ps -a --format '{{.Names}}' | Select-String -Pattern '^fastapi_app$') {
+            docker stop fastapi_app
+            docker rm fastapi_app
+          }
+          if (docker ps -a --format '{{.Names}}' | Select-String -Pattern '^celery_worker$') {
+            docker stop celery_worker
+            docker rm celery_worker
+          }
+          if (docker ps -a --format '{{.Names}}' | Select-String -Pattern '^rabbitmq$') {
+            docker stop rabbitmq
+            docker rm rabbitmq
+          }
           
-          docker-compose -f "C:/Users/k-net/Desktop/docker-compose.yml" up -d
+          docker-compose -f "C:/Users/k-net/Desktop/parkchunsoo/docker-compose.yml" up -d
         EOF

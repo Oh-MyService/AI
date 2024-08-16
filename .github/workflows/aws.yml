@@ -70,16 +70,10 @@ jobs:
       run: |
         sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 docker-compose.yml $SSH_USERNAME@$SERVER_IP:"C:/Users/k-net/Desktop/docker-compose.yml"
         sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 8022 $SSH_USERNAME@$SERVER_IP << EOF
-          set FASTAPI_IMAGE=${FASTAPI_IMAGE}
-          set CELERY_IMAGE=${CELERY_IMAGE}
-          set RABBITMQ_IMAGE=${RABBITMQ_IMAGE}
+          docker pull $FASTAPI_IMAGE
+          docker pull $CELERY_IMAGE
+          docker pull $RABBITMQ_IMAGE
           
-          REM Pull the images
-          docker pull %FASTAPI_IMAGE%
-          docker pull %CELERY_IMAGE%
-          docker pull %RABBITMQ_IMAGE%
-          
-          REM Stop and remove existing containers
           docker stop fastapi_app || exit 0
           docker rm fastapi_app || exit 0
           docker stop celery_worker || exit 0
@@ -87,6 +81,5 @@ jobs:
           docker stop rabbitmq || exit 0
           docker rm rabbitmq || exit 0
           
-          REM Run new containers using docker-compose
           docker-compose -f "C:/Users/k-net/Desktop/docker-compose.yml" up -d
         EOF

@@ -9,7 +9,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Hugging Face API 토큰 설정 (환경 변수 직접 설정)
-ENV HF_AUTH_TOKEN=your_huggingface_token  # 여기에 실제 토큰을 삽입하세요
+ENV HF_AUTH_TOKEN=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  # 여기에 실제 토큰을 삽입하세요
 
 # 애플리케이션 파일 복사
 COPY . .

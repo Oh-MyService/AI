@@ -29,8 +29,17 @@ db_config = {
 }
 
 # Init pipeline
+# Hugging Face API 토큰 직접 설정
+huggingface_token = "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"
+
+# 모델 로드
 model_name = "runwayml/stable-diffusion-v1-5"
-pipeline = StableDiffusionPipeline.from_pretrained(model_name, torch_dtype=torch.float16, use_safetensors=True)
+pipeline = StableDiffusionPipeline.from_pretrained(
+    model_name, 
+    torch_dtype=torch.float16, 
+    use_safetensors=True,
+    use_auth_token=huggingface_token
+)
 pipeline.enable_model_cpu_offload()
 
 def seamless_tiling(pipeline, x_axis, y_axis):

@@ -1,6 +1,26 @@
+# FastAPI 웹 프레임워크
 fastapi
-uvicorn
+
+# Uvicorn ASGI 서버
+uvicorn[standard]
+
+# 이미지 처리 라이브러리
 pillow
+
+# 비동기 작업 큐
 celery
+
+# MySQL 데이터베이스 커넥터
 mysql-connector-python
-# 다른 필요한 패키지들...
+
+# PyTorch 라이브러리
+torch
+
+# .env 파일에서 환경 변수를 로드하기 위한 라이브러리
+python-dotenv
+
+# 외부 API 요청을 위한 라이브러리 (필요 시)
+requests
+
+# Celery를 RabbitMQ와 함께 사용하기 위한 Kombu 라이브러리
+kombu

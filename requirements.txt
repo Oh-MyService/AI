@@ -24,3 +24,14 @@ requests
 
 # Celery를 RabbitMQ와 함께 사용하기 위한 Kombu 라이브러리
 kombu
+
+# Numpy 라이브러리 (PyTorch에서 자주 사용)
+numpy
+
+# Diffusers 라이브러리 (Hugging Face)
+diffusers
+
+# Transformers 라이브러리 (Hugging Face)
+transformers
+
+# 기타 필요한 라이브러리 추가...

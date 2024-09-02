@@ -9,6 +9,11 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: user
       RABBITMQ_DEFAULT_PASS: password
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   celery_worker:
     build:
@@ -16,6 +21,8 @@ services:
       dockerfile: Dockerfile.celery
     environment:
       - CELERY_BROKER_URL=amqp://user:password@rabbitmq:5672//
+      # 필요한 경우 Hugging Face 토큰을 설정
+      - HF_AUTH_TOKEN=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
     depends_on:
       - rabbitmq
 
@@ -27,6 +34,8 @@ services:
       - "8000:8000"
     environment:
       - CELERY_BROKER_URL=amqp://user:password@rabbitmq:5672//
+      # 필요한 경우 Hugging Face 토큰을 설정
+      - HF_AUTH_TOKEN=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
     depends_on:
       - rabbitmq
       - celery_worker

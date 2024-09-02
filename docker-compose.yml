@@ -2,30 +2,31 @@ version: '3.8'
 
 services:
   rabbitmq:
-    build:
-      context: .
-      dockerfile: Dockerfile.rabbitmq
+    image: rabbitmq:3-management
     ports:
-      - "23232:23232"  # AMQP
-      - "23233:23233"  # Management Console
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: user
       RABBITMQ_DEFAULT_PASS: password
 
-  celery:
+  celery_worker:
     build:
       context: .
       dockerfile: Dockerfile.celery
+    environment:
+      - CELERY_BROKER_URL=amqp://user:password@rabbitmq:5672//
     depends_on:
       - rabbitmq
-    environment:
-      - CELERY_BROKER_URL=amqp://user:password@rabbitmq:23232//
 
   fastapi:
     build:
       context: .
       dockerfile: Dockerfile.fastapi
     ports:
-      - "27272:8000"
+      - "8000:8000"
+    environment:
+      - CELERY_BROKER_URL=amqp://user:password@rabbitmq:5672//
     depends_on:
-      - celery
+      - rabbitmq
+      - celery_worker

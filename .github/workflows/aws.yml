@@ -39,10 +39,13 @@ jobs:
         env:
           REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
           REGISTRY_ALIAS: d0v2k3o3  # 본인의 alias 입력
-          REPOSITORY: ohmyservice_frontend  # 본인의 repository명 입력
+          REPOSITORY: ohmyservice_ai  # repository명 설정
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build --no-cache -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
+          # docker-compose를 사용하여 이미지 빌드
+          docker-compose -f docker-compose.yml build
+          # 빌드된 이미지를 태그 및 ECR로 푸시
+          docker tag ohmyservice_ai_celery_worker:latest $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
           docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
           echo "image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
@@ -64,7 +67,7 @@ jobs:
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP << EOF
             IMAGE=${IMAGE}
             sudo docker pull \$IMAGE
-            sudo docker stop oms_FE_Deploy || true
-            sudo docker rm oms_FE_Deploy || true
-            sudo docker run -d --name oms_FE_Deploy -p 25252:80 \$IMAGE
+            sudo docker stop oms_AI_Deploy || true
+            sudo docker rm oms_AI_Deploy || true
+            sudo docker run -d --name oms_AI_Deploy -p 25252:80 \$IMAGE
           EOF

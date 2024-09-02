@@ -17,7 +17,7 @@ from typing import Optional  # <-- Add this import
 logging.basicConfig(level=logging.INFO)
 
 # 로컬에서 실행 중인 RabbitMQ를 브로커로 설정
-app = Celery('tasks', broker='pyamqp://guest@localhost//')
+app = Celery('tasks', broker='amqp://user:password@rabbitmq:5672//')
 
 # MySQL 데이터베이스 설정
 db_config = {

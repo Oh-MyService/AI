@@ -72,6 +72,8 @@ jobs:
         run: |
           echo "LIGHTSAIL_INSTANCE_IP: $LIGHTSAIL_INSTANCE_IP"
           echo "SSH_USERNAME: $SSH_USERNAME"
+          echo "CELERY_IMAGE: $CELERY_IMAGE"
+          echo "FASTAPI_IMAGE: $FASTAPI_IMAGE"
 
       - name: Copy SSH key
         run: |

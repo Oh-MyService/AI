@@ -52,10 +52,16 @@ jobs:
         run: |
           # docker-compose를 사용하여 이미지 빌드
           docker-compose -f docker-compose.yml build
-          # 빌드된 이미지를 태그 및 ECR로 푸시
-          docker tag ohmyservice_ai_celery_worker:latest $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
-          docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
-          echo "image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+          # 각 서비스에 대해 이미지를 태그 및 ECR로 푸시
+          docker tag ai_celery_worker:latest $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:celery_worker-$IMAGE_TAG
+          docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:celery_worker-$IMAGE_TAG
+
+          docker tag ai_fastapi:latest $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:fastapi-$IMAGE_TAG
+          docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:fastapi-$IMAGE_TAG
+
+          echo "celery_image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:celery_worker-$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "fastapi_image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:fastapi-$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Install SSH and sshpass
         run: |
@@ -70,12 +76,18 @@ jobs:
 
       - name: Deploy to Amazon Lightsail
         env:
-          IMAGE: ${{ steps.build-image.outputs.image }}
+          CELERY_IMAGE: ${{ steps.build-image.outputs.celery_image }}
+          FASTAPI_IMAGE: ${{ steps.build-image.outputs.fastapi_image }}
         run: |
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP << EOF
-            IMAGE=${IMAGE}
-            sudo docker pull \$IMAGE
-            sudo docker stop oms_AI_Deploy || true
-            sudo docker rm oms_AI_Deploy || true
-            sudo docker run -d --name oms_AI_Deploy -p 25252:80 \$IMAGE
+            sudo docker pull \$CELERY_IMAGE
+            sudo docker pull \$FASTAPI_IMAGE
+
+            sudo docker stop oms_AI_Celery || true
+            sudo docker rm oms_AI_Celery || true
+            sudo docker run -d --name oms_AI_Celery \$CELERY_IMAGE
+
+            sudo docker stop oms_AI_FastAPI || true
+            sudo docker rm oms_AI_FastAPI || true
+            sudo docker run -d --name oms_AI_FastAPI -p 25252:80 \$FASTAPI_IMAGE
           EOF

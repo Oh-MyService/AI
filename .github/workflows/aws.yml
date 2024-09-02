@@ -72,8 +72,8 @@ jobs:
         run: |
           echo "LIGHTSAIL_INSTANCE_IP: $LIGHTSAIL_INSTANCE_IP"
           echo "SSH_USERNAME: $SSH_USERNAME"
-          echo "CELERY_IMAGE: $CELERY_IMAGE"
-          echo "FASTAPI_IMAGE: $FASTAPI_IMAGE"
+          echo "CELERY_IMAGE: ${{ steps.build-image.outputs.celery_image }}"
+          echo "FASTAPI_IMAGE: ${{ steps.build-image.outputs.fastapi_image }}"
 
       - name: Copy SSH key
         run: |
@@ -86,6 +86,10 @@ jobs:
           CELERY_IMAGE: ${{ steps.build-image.outputs.celery_image }}
           FASTAPI_IMAGE: ${{ steps.build-image.outputs.fastapi_image }}
         run: |
+          echo "Deploying to Lightsail: $LIGHTSAIL_INSTANCE_IP"
+          echo "Using CELERY_IMAGE: $CELERY_IMAGE"
+          echo "Using FASTAPI_IMAGE: $FASTAPI_IMAGE"
+          
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP << EOF
             sudo docker pull \$CELERY_IMAGE
             sudo docker pull \$FASTAPI_IMAGE
@@ -96,5 +100,5 @@ jobs:
 
             sudo docker stop oms_AI_FastAPI || true
             sudo docker rm oms_AI_FastAPI || true
-            sudo docker run -d --name oms_AI_FastAPI -p 25252:80 \$FASTAPI_IMAGE
+            sudo docker run -d --name oms_AI_FastAPI -p 27272:80 \$FASTAPI_IMAGE
           EOF

@@ -1,4 +1,4 @@
-name: Deploy FastAPI, Celery, and RabbitMQ to Windows Server
+name: Deploy to Amazon Lightsail
 
 on:
   push:
@@ -6,9 +6,10 @@ on:
 
 env:
   AWS_REGION: us-east-1
+  LIGHTSAIL_INSTANCE_IP: ${{ secrets.LIGHTSAIL_INSTANCE_IP }}
   SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
   SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-  SERVER_IP: ${{ secrets.SERVER_IP }}
 
 jobs:
   deploy:
@@ -17,75 +18,53 @@ jobs:
     environment: production
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Login to Amazon ECR Public
-      id: login-ecr-public
-      uses: aws-actions/amazon-ecr-login@v1
-      with:
-        registry-type: public
+      - name: Login to Amazon ECR Public
+        id: login-ecr-public
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registry-type: public
 
-    - name: Build, tag, and push FastAPI image to Amazon ECR Public
-      id: build-fastapi-image
-      env:
-        REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
-        REGISTRY_ALIAS: d0v2k3o3
-        REPOSITORY: ohmyservice_ai
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        docker build --no-cache -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:fastapi-$IMAGE_TAG -f Dockerfile.fastapi .
-        docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:fastapi-$IMAGE_TAG
-        echo "fastapi_image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:fastapi-$IMAGE_TAG" >> $GITHUB_OUTPUT
+      - name: Build, tag, and push image to Amazon ECR Public
+        id: build-image
+        env:
+          REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+          REGISTRY_ALIAS: d0v2k3o3  # 본인의 alias 입력
+          REPOSITORY: ohmyservice_frontend  # 본인의 repository명 입력
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build --no-cache -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
+          docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
+          echo "image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-    - name: Build, tag, and push Celery image to Amazon ECR Public
-      id: build-celery-image
-      env:
-        REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
-        REGISTRY_ALIAS: d0v2k3o3
-        REPOSITORY: ohmyservice_ai
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        docker build --no-cache -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:celery-$IMAGE_TAG -f Dockerfile.celery .
-        docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:celery-$IMAGE_TAG
-        echo "celery_image=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:celery-$IMAGE_TAG" >> $GITHUB_OUTPUT
+      - name: Install SSH and sshpass
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssh-client sshpass
 
-    - name: Install SSH client and sshpass
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y openssh-client sshpass
+      - name: Copy SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
 
-    - name: Deploy to Windows Server
-      env:
-        FASTAPI_IMAGE: ${{ steps.build-fastapi-image.outputs.fastapi_image }}
-        CELERY_IMAGE: ${{ steps.build-celery-image.outputs.celery_image }}
-        RABBITMQ_IMAGE: rabbitmq:management
-      run: |
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 8022 docker-compose.yml $SSH_USERNAME@$SERVER_IP:"C:/Users/parkchunsoo/Desktop/docker-compose.yml"
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 8022 $SSH_USERNAME@$SERVER_IP << EOF
-          docker pull $FASTAPI_IMAGE
-          docker pull $CELERY_IMAGE
-          docker pull $RABBITMQ_IMAGE
-          
-          if (\$(docker ps -a --format '{{.Names}}' | Select-String -Pattern '^fastapi_app$')) {
-            docker stop fastapi_app
-            docker rm fastapi_app
-          }
-          if (\$(docker ps -a --format '{{.Names}}' | Select-String -Pattern '^celery_worker$')) {
-            docker stop celery_worker
-            docker rm celery_worker
-          }
-          if (\$(docker ps -a --format '{{.Names}}' | Select-String -Pattern '^rabbitmq$')) {
-            docker stop rabbitmq
-            docker rm rabbitmq
-          }
-          
-          docker-compose -f "C:/Users/parkchunsoo/Desktop/docker-compose.yml" up -d
-        EOF
+      - name: Deploy to Amazon Lightsail
+        env:
+          IMAGE: ${{ steps.build-image.outputs.image }}
+        run: |
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP << EOF
+            IMAGE=${IMAGE}
+            sudo docker pull \$IMAGE
+            sudo docker stop oms_FE_Deploy || true
+            sudo docker rm oms_FE_Deploy || true
+            sudo docker run -d --name oms_FE_Deploy -p 25252:80 \$IMAGE
+          EOF

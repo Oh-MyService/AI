@@ -22,7 +22,7 @@ services:
     environment:
       - CELERY_BROKER_URL=amqp://user:password@rabbitmq:5672//
       # 필요한 경우 Hugging Face 토큰을 설정
-      - HF_AUTH_TOKEN=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
+      - HF_AUTH_TOKEN=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
     depends_on:
       - rabbitmq
 
@@ -35,7 +35,7 @@ services:
     environment:
       - CELERY_BROKER_URL=amqp://user:password@rabbitmq:5672//
       # 필요한 경우 Hugging Face 토큰을 설정
-      - HF_AUTH_TOKEN=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
+      - HF_AUTH_TOKEN=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
     depends_on:
       - rabbitmq
       - celery_worker

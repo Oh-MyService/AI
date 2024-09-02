@@ -1,4 +1,6 @@
 fastapi
-uvicorn[standard]
+uvicorn
 pillow
-celery  # Celery와 Redis 또는 RabbitMQ 지원
+celery
+mysql-connector-python
+# 다른 필요한 패키지들...

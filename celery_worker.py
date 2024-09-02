@@ -30,7 +30,7 @@ db_config = {
 
 # Init pipeline
 # Hugging Face API 토큰 직접 설정
-huggingface_token = "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"
+huggingface_token = "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"
 
 # 모델 로드
 model_name = "runwayml/stable-diffusion-v1-5"

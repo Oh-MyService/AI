@@ -61,33 +61,33 @@ def seamless_tiling(pipeline, x_axis, y_axis):
     return pipeline
 
 @app.task
-def generate_and_send_image(prompt_id, image_data, user_id):
+def generate_and_send_image(prompt_id, image_data, user_id, options):
     try:
-        logging.info(f"Received prompt_id: ({type(prompt_id)}){prompt_id}, user_id: ({type(user_id)}){user_id}")
+        logging.info(f"Received prompt_id: ({type(prompt_id)}){prompt_id}, user_id: ({type(user_id)}){user_id}, options: {options}")
 
         # Set seamless tiling
         global pipeline
         pipeline = seamless_tiling(pipeline=pipeline, x_axis=True, y_axis=True)
 
         # 임의의 값 설정
-        width = 512
-        height = 512
-        num_inference_steps = 50
-        guidance_scale = 7.5
+        width = options["width"]
+        height = options["height"]
+        num_inference_steps = options["sampling_steps"]
+        guidance_scale = options["cfg_scale"]
         num_images_per_prompt = 4
-        seed = 42  # 고정된 시드를 사용하여 결과를 재현 가능하게 설정
+        seed = options["seed"]  # 고정된 시드를 사용하여 결과를 재현 가능하게 설정
         generator = torch.Generator(device='cuda').manual_seed(seed)
+
+        image_data = "seamless " + image_data + " pattern, fabric textiled pattern"
 
         # Generate and save images with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        output_dir = os.path.join(r'C:\Users\ParkChunSoo\Desktop\산학쭈고\ai_images', timestamp)
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        output_dir = '.'
 
         # Generate images using AI model
         images = pipeline(
             prompt=[image_data],
-            negative_prompt=None,  # negative prompt 없음
+            negative_prompt=["irregular shape, deformed, asymmetrical, wavy lines, blurred, low quality,on fabric, real photo, shadow, cracked"],  # negative prompt 없음
             width=width,
             height=height,
             num_inference_steps=num_inference_steps,
@@ -106,26 +106,10 @@ def generate_and_send_image(prompt_id, image_data, user_id):
             with open(image_filename, 'rb') as img_file:
                 image_blob = img_file.read()
                 result_id = save_image_to_database(prompt_id, user_id, image_blob)
+                img_file.close()  # Ensure the file is closed before deleting
+                os.remove(image_filename)
 
             logging.info(f"Image {i+1} saved to database with result_id: {result_id}")
-
-        # Save settings to JSON
-        settings = {
-            'prompt': image_data,
-            'negative_prompt': None,
-            'width': width,
-            'height': height,
-            'num_inference_steps': num_inference_steps,
-            'guidance_scale': guidance_scale,
-            'num_images_per_prompt': num_images_per_prompt,
-            'seed': seed,
-            'image_filenames': image_filenames,
-            'model': model_name
-        }
-
-        json_filename = os.path.join(output_dir, 'settings.json')
-        with open(json_filename, 'w') as json_file:
-            json.dump(settings, json_file, indent=4)
 
         # Reset seamless tiling
         seamless_tiling(pipeline=pipeline, x_axis=False, y_axis=False)

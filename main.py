@@ -1,5 +1,5 @@
-#main.py
-#uvicorn main:app --reload --host 0.0.0.0 --port 27272
+# main.py
+# uvicorn main:app --reload --host 0.0.0.0 --port 27272
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from celery.result import AsyncResult
 from celery_worker import generate_and_send_image, app as celery_app
 import logging
+from datetime import datetime
 
 app = FastAPI()
 
@@ -26,10 +27,23 @@ app.add_middleware(
 # OAuth2PasswordBearer 설정
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+# AIOption 모델 생성
+class AIOption(BaseModel):
+    width: int
+    height: int
+    background_color: str
+    pattern: int
+    mood: str
+    cfg_scale: int
+    sampling_steps: int
+    seed: int
+
+# PromptRequest 모델 생성
 class PromptRequest(BaseModel):
     user_id: int
     prompt_id: int
     content: str
+    ai_option: AIOption
 
 @app.post("/generate-image")
 async def generate_image(request: PromptRequest):
@@ -37,7 +51,12 @@ async def generate_image(request: PromptRequest):
         logging.info(f"Calling Celery task with prompt_id: {request.prompt_id}, content: {request.content}")
         
         # Celery 작업을 비동기적으로 호출할 때 JWT 토큰을 함께 전달
-        task = generate_and_send_image.delay(prompt_id=request.prompt_id, image_data=request.content, user_id=request.user_id)
+        task = generate_and_send_image.delay(
+            prompt_id=request.prompt_id,
+            image_data=request.content,
+            user_id=request.user_id,
+            options=dict(request.ai_option)  # ai_option을 딕셔너리로 변환하여 전달
+        )
         
         logging.info(f"Celery task started with task_id: {task.id}")
         return {"message": "Image generation started", "task_id": task.id, "prompt_id": request.prompt_id}

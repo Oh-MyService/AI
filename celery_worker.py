@@ -16,6 +16,11 @@ from typing import Optional  # <-- Add this import
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 
+if torch.cuda.is_available():
+    logging.info(f"GPU is available. Using {torch.cuda.get_device_name(0)}")
+else:
+    logging.info("GPU is not available, using CPU instead.")
+
 # 로컬에서 실행 중인 RabbitMQ를 브로커로 설정
 app = Celery('tasks', broker='amqp://user:password@rabbitmq:5672//')
 

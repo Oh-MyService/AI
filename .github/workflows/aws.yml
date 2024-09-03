@@ -99,9 +99,9 @@ jobs:
 
             sudo docker stop oms_AI_Celery || true
             sudo docker rm oms_AI_Celery || true
-            sudo docker run -d --gpus --name oms_AI_Celery \$CELERY_IMAGE
+            sudo docker run -d --gpus all --name oms_AI_Celery \$CELERY_IMAGE
 
             sudo docker stop oms_AI_FastAPI || true
             sudo docker rm oms_AI_FastAPI || true
-            sudo docker run -d --gpus --name oms_AI_FastAPI -p 27272:80 \$FASTAPI_IMAGE
+            sudo docker run -d --gpus all --name oms_AI_FastAPI -p 27272:80 \$FASTAPI_IMAGE
           EOF

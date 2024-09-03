@@ -33,12 +33,12 @@ db_config = {
 huggingface_token = "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"
 
 # 모델 로드
-model_name = "runwayml/stable-diffusion-v1-5"
+model_name = "stabilityai/sdxl-turbo"
 pipeline = StableDiffusionPipeline.from_pretrained(
     model_name, 
     torch_dtype=torch.float16, 
-    use_safetensors=True,
-    use_auth_token=huggingface_token
+    use_safetensors=True#,
+    #use_auth_token=huggingface_token
 )
 pipeline.enable_model_cpu_offload()
 

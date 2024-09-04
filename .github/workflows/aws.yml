@@ -82,12 +82,12 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
 
       - name: Copy necessary files to Lightsail
-          run: |
-            sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa docker-compose.yml $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/docker-compose.yml
-            sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa Dockerfile.celery $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/Dockerfile.celery
-            sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa Dockerfile.fastapi $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/Dockerfile.fastapi
-            sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa requirements.txt $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/requirements.txt
-            
+        run: |
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa docker-compose.yml $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/docker-compose.yml
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa Dockerfile.celery $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/Dockerfile.celery
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa Dockerfile.fastapi $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/Dockerfile.fastapi
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa requirements.txt $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/requirements.txt
+
       - name: Deploy to Amazon Lightsail using Docker Compose
         env:
           CELERY_IMAGE: ${{ steps.build-image.outputs.celery_image }}

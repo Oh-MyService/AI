@@ -19,7 +19,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.celery
-    command: nvidia-smi
     runtime: nvidia
     deploy:
       resources:
@@ -40,7 +39,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.fastapi
-    command: nvidia-smi
     runtime: nvidia
     deploy:
       resources:

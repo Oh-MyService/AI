@@ -1,13 +1,11 @@
+# requirements.txt
 fastapi==0.95.2
 uvicorn[standard]==0.22.0
 pillow==9.5.0
 celery==5.4.0
 mysql-connector-python==8.0.33
 accelerate==0.21.0
-torch==2.0.1+cu117  # CUDA 11.7을 사용하는 PyTorch 버전
+transformers==4.31.0
+diffusers==0.29.0
 python-dotenv==1.0.0
 requests==2.31.0
-kombu==5.3.1
-numpy==1.24.4
-diffusers==0.29.0
-transformers==4.31.0

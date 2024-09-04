@@ -1,38 +1,13 @@
-# FastAPI 웹 프레임워크
-fastapi
-
-# Uvicorn ASGI 서버
-uvicorn[standard]
-
-# 이미지 처리 라이브러리
-pillow
-
-# 비동기 작업 큐
-celery
-
-# MySQL 데이터베이스 커넥터
-mysql-connector-python
-
-# PyTorch 라이브러리
-accelerate
-torch
-
-# .env 파일에서 환경 변수를 로드하기 위한 라이브러리
-python-dotenv
-
-# 외부 API 요청을 위한 라이브러리 (필요 시)
-requests
-
-# Celery를 RabbitMQ와 함께 사용하기 위한 Kombu 라이브러리
-kombu
-
-# Numpy 라이브러리 (PyTorch에서 자주 사용)
-numpy
-
-# Diffusers 라이브러리 (Hugging Face)
-diffusers
-
-# Transformers 라이브러리 (Hugging Face)
-transformers
-
-# 기타 필요한 라이브러리 추가...
+fastapi==0.95.2
+uvicorn[standard]==0.22.0
+pillow==9.5.0
+celery==5.4.0
+mysql-connector-python==8.0.33
+accelerate==0.21.0
+torch==2.0.1+cu117  # CUDA 11.7을 사용하는 PyTorch 버전
+python-dotenv==1.0.0
+requests==2.31.0
+kombu==5.3.1
+numpy==1.24.4
+diffusers==0.29.0
+transformers==4.31.0

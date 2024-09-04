@@ -81,11 +81,13 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      - name: Copy Dockerfiles to Lightsail
-        run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa Dockerfile.celery $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/Dockerfile.celery
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa Dockerfile.fastapi $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/Dockerfile.fastapi
-
+      - name: Copy necessary files to Lightsail
+          run: |
+            sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa docker-compose.yml $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/docker-compose.yml
+            sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa Dockerfile.celery $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/Dockerfile.celery
+            sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa Dockerfile.fastapi $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/Dockerfile.fastapi
+            sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa requirements.txt $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/requirements.txt
+            
       - name: Deploy to Amazon Lightsail using Docker Compose
         env:
           CELERY_IMAGE: ${{ steps.build-image.outputs.celery_image }}
@@ -96,14 +98,7 @@ jobs:
           echo "Using FASTAPI_IMAGE: $FASTAPI_IMAGE"
 
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP << EOF
-            # Docker Compose 설치
-            if ! command -v docker-compose &> /dev/null
-            then
-                echo "Docker Compose가 설치되어 있지 않습니다. 설치를 진행합니다."
-                sudo curl -L "https://github.com/docker/compose/releases/download/v2.3.3/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
-                sudo chmod +x /usr/local/bin/docker-compose
-            fi
-
+            
             # docker-compose.yml 파일을 사용하여 배포
             docker-compose down
             docker-compose pull

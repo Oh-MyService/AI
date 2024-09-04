@@ -40,21 +40,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.fastapi
-    runtime: nvidia
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              capabilities: [gpu]
     ports:
       - "27272:8000"
     environment:
       - CELERY_BROKER_URL=amqp://user:password@rabbitmq:5672//
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - CUDA_VISIBLE_DEVICES=0
-      - CUDA_LAUNCH_BLOCKING=1
     depends_on:
       - rabbitmq
       - celery_worker

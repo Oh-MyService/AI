@@ -10,6 +10,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 애플리케이션 파일 복사
 COPY . .
+COPY main.py .
+COPY celery_worker.py .
 
 # Celery 워커 실행 명령어
 CMD ["celery", "-A", "celery_worker", "worker", "--loglevel=info"]

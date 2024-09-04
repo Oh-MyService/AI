@@ -28,10 +28,9 @@ services:
               capabilities: [gpu]
     environment:
       - CELERY_BROKER_URL=amqp://user:password@rabbitmq:5672//
-      # 필요한 경우 Hugging Face 토큰을 설정
-      - HF_AUTH_TOKEN=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
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
       - CUDA_LAUNCH_BLOCKING=1
     depends_on:
       - rabbitmq
@@ -51,10 +50,9 @@ services:
       - "27272:8000"
     environment:
       - CELERY_BROKER_URL=amqp://user:password@rabbitmq:5672//
-      # 필요한 경우 Hugging Face 토큰을 설정
-      - HF_AUTH_TOKEN=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
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
       - CUDA_LAUNCH_BLOCKING=1
     depends_on:
       - rabbitmq

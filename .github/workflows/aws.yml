@@ -81,7 +81,11 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      - name: Deploy to Amazon Lightsail
+      - name: Copy docker-compose.yml to Lightsail
+        run: |
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa docker-compose.yml $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/docker-compose.yml
+
+      - name: Deploy to Amazon Lightsail using Docker Compose
         env:
           CELERY_IMAGE: ${{ steps.build-image.outputs.celery_image }}
           FASTAPI_IMAGE: ${{ steps.build-image.outputs.fastapi_image }}
@@ -91,17 +95,8 @@ jobs:
           echo "Using FASTAPI_IMAGE: $FASTAPI_IMAGE"
 
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP << EOF
-            CELERY_IMAGE=$CELERY_IMAGE
-            FASTAPI_IMAGE=$FASTAPI_IMAGE
-
-            sudo docker pull \$CELERY_IMAGE
-            sudo docker pull \$FASTAPI_IMAGE
-
-            sudo docker stop oms_AI_Celery || true
-            sudo docker rm oms_AI_Celery || true
-            sudo docker run -d --gpus all --name oms_AI_Celery \$CELERY_IMAGE
-
-            sudo docker stop oms_AI_FastAPI || true
-            sudo docker rm oms_AI_FastAPI || true
-            sudo docker run -d --gpus all --name oms_AI_FastAPI -p 27272:80 \$FASTAPI_IMAGE
+            # docker-compose.yml 파일을 사용하여 배포
+            docker-compose down
+            docker-compose pull
+            docker-compose up -d
           EOF

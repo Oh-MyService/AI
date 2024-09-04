@@ -37,8 +37,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.fastapi
-      ports:
-        - 27272:8000
     command: nvidia-smi
     deploy:
       resources:
@@ -47,7 +45,7 @@ services:
             - driver: nvidia
               capabilities: [gpu]
     ports:
-      - "8000:8000"
+      - "27272:8000"
     environment:
       - CELERY_BROKER_URL=amqp://user:password@rabbitmq:5672//
       # 필요한 경우 Hugging Face 토큰을 설정

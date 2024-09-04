@@ -87,8 +87,8 @@ jobs:
           sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa Dockerfile.celery $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/Dockerfile.celery
           sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa Dockerfile.fastapi $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/Dockerfile.fastapi
           sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa requirements.txt $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/requirements.txt
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa requirements.txt $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/celery_worker.py
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa requirements.txt $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/main.py
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa celery_worker.py $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/celery_worker.py
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa main.py $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/main.py
 
       - name: Deploy to Amazon Lightsail using Docker Compose
         env:

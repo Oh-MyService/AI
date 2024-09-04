@@ -16,6 +16,8 @@ from typing import Optional  # <-- Add this import
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 
+logging.info(f"Is torch.cuda is available? : {torch.cuda.is_available()}")
+
 if torch.cuda.is_available():
     logging.info(f"GPU is available. Using {torch.cuda.get_device_name(0)}")
 else:

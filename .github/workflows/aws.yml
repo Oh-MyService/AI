@@ -51,7 +51,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # docker-compose를 사용하여 이미지 빌드
-          docker-compose -f docker-compose.yml build
+          docker-compose -f docker-compose.yml build --no-cache
 
           # 각 서비스에 대해 이미지를 태그 및 ECR로 푸시
           docker tag ai_celery_worker:latest $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:celery_worker-$IMAGE_TAG

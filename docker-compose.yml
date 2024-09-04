@@ -32,6 +32,7 @@ services:
       - HF_AUTH_TOKEN=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
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_LAUNCH_BLOCKING=1
     depends_on:
       - rabbitmq
 
@@ -54,6 +55,7 @@ services:
       - HF_AUTH_TOKEN=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
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_LAUNCH_BLOCKING=1
     depends_on:
       - rabbitmq
       - celery_worker

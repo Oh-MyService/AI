@@ -1,3 +1,16 @@
+name: Deploy to Amazon Lightsail
+
+on:
+  push:
+    branches: [ "main" ]  # main 브랜치에 푸시될 때 워크플로우가 실행됩니다.
+
+env:
+  AWS_REGION: us-east-1
+  LIGHTSAIL_INSTANCE_IP: ${{ secrets.LIGHTSAIL_INSTANCE_IP }}
+  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+  SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+
 jobs:
   deploy:
     name: Deploy
@@ -90,9 +103,6 @@ jobs:
                 sudo curl -L "https://github.com/docker/compose/releases/download/v2.3.3/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
                 sudo chmod +x /usr/local/bin/docker-compose
             fi
-
-            # Dockerfile 위치로 이동
-            cd ~
 
             # docker-compose.yml 파일을 사용하여 배포
             docker-compose down

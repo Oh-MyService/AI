@@ -83,7 +83,7 @@ jobs:
 
       - name: Copy docker-compose.yml to Lightsail
         run: |
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa docker-compose.yml $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/docker-compose.yml
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa docker-compose.yml $SSH_USERNAME@$LIGHTSAIL_INSTANCE_IP:~/docker-compose.yml
 
       - name: Deploy to Amazon Lightsail using Docker Compose
         env:

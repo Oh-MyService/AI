@@ -7,7 +7,7 @@ import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
 import torch
-from diffusers import AutoPipelineForText2Image
+from diffusers import StableDiffusionPipeline
 from diffusers.models.lora import LoRACompatibleConv
 from celery import Celery
 import json
@@ -40,11 +40,11 @@ db_config = {
 
 # 모델 로드
 model_name = "stabilityai/sdxl-turbo"
-pipeline = AutoPipelineForText2Image.from_pretrained(
+pipeline = StableDiffusionPipeline.from_pretrained(
     model_name, 
     torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
-    variant="fp16"#,  # 16-bit floating point 사용
-    #addition_embed_type=None
+    variant="fp16",  # 16-bit floating point 사용
+    addition_embed_type=None
 ).to('cuda')
 
 pipeline.tokenizer = CLIPTokenizer.from_pretrained(model_name)

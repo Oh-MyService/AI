@@ -7,7 +7,7 @@ import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
 import torch
-from diffusers import DiffusionPipeline
+from diffusers import StableDiffusionPipeline
 from diffusers.models.lora import LoRACompatibleConv
 from celery import Celery
 import json
@@ -39,7 +39,7 @@ db_config = {
 
 # 모델 로드
 model_name = "stabilityai/sdxl-turbo"
-pipeline = DiffusionPipeline.from_pretrained(
+pipeline = StableDiffusionPipeline.from_pretrained(
     model_name, 
     torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
         variant="fp16"  # 16-bit floating point 사용
@@ -90,9 +90,12 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
         seed = options["seed"]  # 고정된 시드를 사용하여 결과를 재현 가능하게 설정
         generator = torch.Generator(device='cuda').manual_seed(seed)
 
-        image_data = "seamless " + image_data + " pattern, fabric textiled pattern"
+        pos_prompt = "seamless " + image_data + " pattern, fabric textiled pattern"
+        neg_prompt = "irregular shape, deformed, asymmetrical, wavy lines, blurred, low quality,on fabric, real photo, shadow, cracked, text"
 
-        added_cond_kwargs = added_cond_kwargs or {}
+        # 텍스트 임베딩 생성 (필요한 경우)
+        text_inputs = pipeline.tokenizer(pos_prompt, padding="max_length", return_tensors="pt").input_ids
+        text_embeddings = pipeline.text_encoder(text_inputs.to('cuda'))[0]
 
         # Generate and save images with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -100,15 +103,14 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
 
         # Generate images using AI model
         images = pipeline(
-            prompt=image_data,
-            negative_prompt="irregular shape, deformed, asymmetrical, wavy lines, blurred, low quality,on fabric, real photo, shadow, cracked", 
+            prompt=text_embeddings,
+            negative_prompt=neg_prompt, 
             width=width,
             height=height,
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
             num_images_per_prompt=num_images_per_prompt,
-            generator=generator,
-            added_cond_kwargs=added_cond_kwargs  # 필요 시 추가
+            generator=generator
         ).images
 
         image_filenames = []

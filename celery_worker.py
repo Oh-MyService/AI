@@ -92,6 +92,8 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
 
         image_data = "seamless " + image_data + " pattern, fabric textiled pattern"
 
+        added_cond_kwargs = added_cond_kwargs or {}
+
         # Generate and save images with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         output_dir = '.'
@@ -105,7 +107,8 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
             num_images_per_prompt=num_images_per_prompt,
-            generator=generator
+            generator=generator,
+            added_cond_kwargs=added_cond_kwargs  # 필요 시 추가
         ).images
 
         image_filenames = []

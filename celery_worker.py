@@ -93,14 +93,20 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
         pos_prompt = "seamless " + image_data + " pattern, fabric textiled pattern"
         neg_prompt = "irregular shape, deformed, asymmetrical, wavy lines, blurred, low quality,on fabric, real photo, shadow, cracked, text"
 
+        text_inputs = pipeline.tokenizer(pos_prompt, padding="max_length", return_tensors="pt").input_ids
+        text_embeddings = pipeline.text_encoder(text_inputs.to('cuda'))[0]
+
+        neg_text_inputs = pipeline.tokenizer(neg_prompt, padding="max_length", return_tensors="pt").input_ids
+        neg_text_embeddings = pipeline.text_encoder(neg_text_inputs.to('cuda'))[0]
+
         # Generate and save images with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         output_dir = '.'
 
         # Generate images using AI model
         images = pipeline(
-            prompt=pos_prompt,
-            negative_prompt=neg_prompt, 
+            prompt=text_embeddings,
+            negative_prompt=neg_text_embeddings, 
             width=width,
             height=height,
             num_inference_steps=num_inference_steps,

@@ -36,18 +36,14 @@ db_config = {
 }
 
 # Init pipeline
-# Hugging Face API 토큰 직접 설정
-huggingface_token = "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"
 
 # 모델 로드
 model_name = "stabilityai/sdxl-turbo"
 pipeline = StableDiffusionPipeline.from_pretrained(
     model_name, 
-    torch_dtype=torch.float16, 
-    use_safetensors=True#,
-    #use_auth_token=huggingface_token
-)
-pipeline.enable_model_cpu_offload()
+    torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
+        variant="fp16"  # 16-bit floating point 사용
+).to('cuda')
 
 def seamless_tiling(pipeline, x_axis, y_axis):
     def asymmetric_conv2d_convforward(self, input: torch.Tensor, weight: torch.Tensor, bias: Optional[torch.Tensor] = None):
@@ -102,8 +98,8 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
 
         # Generate images using AI model
         images = pipeline(
-            prompt=[image_data],
-            negative_prompt=["irregular shape, deformed, asymmetrical, wavy lines, blurred, low quality,on fabric, real photo, shadow, cracked"],  # negative prompt 없음
+            prompt=image_data,
+            negative_prompt="irregular shape, deformed, asymmetrical, wavy lines, blurred, low quality,on fabric, real photo, shadow, cracked", 
             width=width,
             height=height,
             num_inference_steps=num_inference_steps,

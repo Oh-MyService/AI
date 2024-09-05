@@ -7,7 +7,7 @@ import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
 import torch
-from diffusers import StableDiffusionPipeline
+from diffusers import DiffusionPipeline
 from diffusers.models.lora import LoRACompatibleConv
 from celery import Celery
 import json
@@ -39,7 +39,7 @@ db_config = {
 
 # 모델 로드
 model_name = "stabilityai/sdxl-turbo"
-pipeline = StableDiffusionPipeline.from_pretrained(
+pipeline = DiffusionPipeline.from_pretrained(
     model_name, 
     torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
     variant="fp16"  # 16-bit floating point 사용
@@ -84,8 +84,8 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
         # 임의의 값 설정
         width = options["width"]
         height = options["height"]
-        num_inference_steps = options["sampling_steps"]
-        guidance_scale = float(options["cfg_scale"])
+        num_inference_steps = 50#options["sampling_steps"]
+        guidance_scale = 7.5#float(options["cfg_scale"])
         num_images_per_prompt = 4
         seed = options["seed"]  # 고정된 시드를 사용하여 결과를 재현 가능하게 설정
         generator = torch.Generator(device='cuda').manual_seed(seed)

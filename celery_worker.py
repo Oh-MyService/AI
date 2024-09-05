@@ -43,7 +43,8 @@ model_name = "stabilityai/sdxl-turbo"
 pipeline = StableDiffusionPipeline.from_pretrained(
     model_name, 
     torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
-        variant="fp16"  # 16-bit floating point 사용
+    variant="fp16",  # 16-bit floating point 사용
+    addition_embed_type=None
 ).to('cuda')
 
 pipeline.tokenizer = CLIPTokenizer.from_pretrained(model_name)

@@ -12,6 +12,7 @@ from diffusers.models.lora import LoRACompatibleConv
 from celery import Celery
 import json
 from typing import Optional  # <-- Add this import
+from transformers import CLIPTokenizer, CLIPTextModel
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -44,6 +45,9 @@ pipeline = StableDiffusionPipeline.from_pretrained(
     torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
         variant="fp16"  # 16-bit floating point 사용
 ).to('cuda')
+
+pipeline.tokenizer = CLIPTokenizer.from_pretrained(model_name)
+pipeline.text_encoder = CLIPTextModel.from_pretrained(model_name).to('cuda')
 
 def seamless_tiling(pipeline, x_axis, y_axis):
     def asymmetric_conv2d_convforward(self, input: torch.Tensor, weight: torch.Tensor, bias: Optional[torch.Tensor] = None):

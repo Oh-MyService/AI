@@ -12,7 +12,6 @@ from diffusers.models.lora import LoRACompatibleConv
 from celery import Celery
 import json
 from typing import Optional  # <-- Add this import
-from transformers import CLIPTokenizer, CLIPTextModel
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -46,9 +45,6 @@ pipeline = StableDiffusionPipeline.from_pretrained(
     variant="fp16",  # 16-bit floating point 사용
     addition_embed_type=None
 ).to('cuda')
-
-pipeline.tokenizer = CLIPTokenizer.from_pretrained(model_name)
-pipeline.text_encoder = CLIPTextModel.from_pretrained(model_name).to('cuda')
 
 def seamless_tiling(pipeline, x_axis, y_axis):
     def asymmetric_conv2d_convforward(self, input: torch.Tensor, weight: torch.Tensor, bias: Optional[torch.Tensor] = None):
@@ -98,20 +94,14 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
         pos_prompt = "seamless " + image_data + " pattern, fabric textiled pattern"
         neg_prompt = "irregular shape, deformed, asymmetrical, wavy lines, blurred, low quality,on fabric, real photo, shadow, cracked, text"
 
-        text_inputs = pipeline.tokenizer(pos_prompt, padding="max_length", return_tensors="pt").input_ids
-        text_embeddings = pipeline.text_encoder(text_inputs.to('cuda'))[0]
-
-        neg_text_inputs = pipeline.tokenizer(neg_prompt, padding="max_length", return_tensors="pt").input_ids
-        neg_text_embeddings = pipeline.text_encoder(neg_text_inputs.to('cuda'))[0]
-
         # Generate and save images with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         output_dir = '.'
 
         # Generate images using AI model
         images = pipeline(
-            prompt=text_embeddings,
-            negative_prompt=neg_text_embeddings, 
+            prompt=pos_prompt,
+            negative_prompt=neg_prompt, 
             width=width,
             height=height,
             num_inference_steps=num_inference_steps,

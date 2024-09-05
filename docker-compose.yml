@@ -11,6 +11,7 @@ services:
         reservations:
           devices:
             - driver: nvidia
+              count: all
               capabilities: [gpu]
     environment:
       - CELERY_BROKER_URL=amqp://user:password@rabbitmq:5672//

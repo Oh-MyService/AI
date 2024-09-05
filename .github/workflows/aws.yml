@@ -95,5 +95,5 @@ jobs:
             # docker-compose.yml 파일을 사용하여 배포
             docker-compose down
             docker-compose pull
-            docker-compose up -d --gpus all
+            docker-compose up -d
           EOF

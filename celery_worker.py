@@ -91,6 +91,7 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
         generator = torch.Generator(device='cuda').manual_seed(seed)
 
         image_data = "seamless " + image_data + " pattern, fabric textiled pattern"
+        text_embeddings = pipeline.text_encoder(image_data).last_hidden_state
 
         # Generate and save images with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -105,7 +106,8 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
             num_images_per_prompt=num_images_per_prompt,
-            generator=generator
+            generator=generator,
+            text_embeddings=text_embeddings
         ).images
 
         image_filenames = []

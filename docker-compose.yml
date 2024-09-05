@@ -1,24 +1,10 @@
 version: '3.8'
 
 services:
-  rabbitmq:
-    image: rabbitmq:3-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: user
-      RABBITMQ_DEFAULT_PASS: password
-    healthcheck:
-      test: ["CMD", "rabbitmqctl", "status"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  celery_worker:
+  web_app:
     build:
       context: .
-      dockerfile: Dockerfile.celery
+      dockerfile: Dockerfile.celery  # 위에서 만든 Dockerfile을 사용
     runtime: nvidia
     deploy:
       resources:
@@ -32,18 +18,21 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_VISIBLE_DEVICES=0
       - CUDA_LAUNCH_BLOCKING=1
-      - CELERYD_LOG_LEVEL=DEBUG
+    ports:
+      - "27272:8000"  # FastAPI 포트
     depends_on:
       - rabbitmq
 
-  fastapi:
-    build:
-      context: .
-      dockerfile: Dockerfile.fastapi
+  rabbitmq:
+    image: rabbitmq:3-management
     ports:
-      - "27272:8000"
+      - "5672:5672"
+      - "15672:15672"
     environment:
-      - CELERY_BROKER_URL=amqp://user:password@rabbitmq:5672//
-    depends_on:
-      - rabbitmq
-      - celery_worker
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

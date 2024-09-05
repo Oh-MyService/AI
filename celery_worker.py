@@ -103,7 +103,7 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
 
         # Generate images using AI model
         images = pipeline(
-            prompt=text_embeddings,
+            prompt_embeds=text_embeddings,
             negative_prompt=neg_prompt, 
             width=width,
             height=height,

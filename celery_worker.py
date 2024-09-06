@@ -84,8 +84,8 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
         # 임의의 값 설정
         width = options["width"]
         height = options["height"]
-        num_inference_steps = 50#options["sampling_steps"]
-        guidance_scale = 7.5#float(options["cfg_scale"])
+        num_inference_steps = options["sampling_steps"]
+        guidance_scale = float(options["cfg_scale"])
         num_images_per_prompt = 4
         seed = options["seed"]  # 고정된 시드를 사용하여 결과를 재현 가능하게 설정
         generator = torch.Generator(device='cuda').manual_seed(seed)
@@ -93,8 +93,6 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
         pos_prompt = "seamless " + image_data + " pattern, fabric textiled pattern"
         neg_prompt = "irregular shape, deformed, asymmetrical, wavy lines, blurred, low quality,on fabric, real photo, shadow, cracked, text"
 
-        # Generate and save images with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         output_dir = '.'
 
         # Generate images using AI model

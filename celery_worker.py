@@ -7,11 +7,11 @@ import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
 import torch
-from diffusers import StableDiffusionPipeline
+from diffusers import DiffusionPipeline
 from diffusers.models.lora import LoRACompatibleConv
 from celery import Celery
 import json
-from typing import Optional  # <-- Add this import
+from typing import Optional 
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -39,7 +39,7 @@ db_config = {
 
 # 모델 로드
 model_name = "stabilityai/sdxl-turbo"
-pipeline = StableDiffusionPipeline.from_pretrained(
+pipeline = DiffusionPipeline.from_pretrained(
     model_name, 
     torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
     variant="fp16"  # 16-bit floating point 사용
@@ -107,11 +107,9 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
             generator=generator
         ).images
 
-        image_filenames = []
         for i, image in enumerate(images):
             image_filename = os.path.join(output_dir, f'image_{i+1}.png')
             image.save(image_filename)
-            image_filenames.append(image_filename)
 
             # Save image to database
             with open(image_filename, 'rb') as img_file:

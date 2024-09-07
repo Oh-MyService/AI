@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 # CORS 설정 추가
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://43.202.57.225:28282"],  # 서버 주소를 허용
+    allow_origins=["http://118.67.128.129:28282"],  # 서버 주소를 허용
     allow_credentials=True,
     allow_methods=["*"],  # 모든 HTTP 메서드를 허용
     allow_headers=["*"],  # 모든 HTTP 헤더를 허용

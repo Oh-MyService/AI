@@ -28,6 +28,8 @@ app = Celery('tasks')
 app.conf.broker_url = "amqp://user:password@rabbitmq:5672//"
 app.conf.broker_connection_retry_on_startup = True
 app.conf.broker_heartbeat = 60
+app.conf.task_acks_late = True
+app.conf.task_reject_on_worker_lost = True
 
 
 # MySQL 데이터베이스 설정

@@ -34,7 +34,7 @@ class AIOption(BaseModel):
     background_color: str
     pattern: int
     mood: str
-    cfg_scale: int
+    cfg_scale: float
     sampling_steps: int
     seed: int
 

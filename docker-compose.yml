@@ -24,7 +24,6 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy  # RabbitMQ가 준비될 때까지 대기
-    network_mode: "host"  # 호스트 네트워크 모드 사용 (가상 네트워크 문제 완화)
 
   rabbitmq:
     image: rabbitmq:3.13.7-management

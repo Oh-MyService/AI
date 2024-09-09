@@ -25,7 +25,7 @@ else:
 
 # 로컬에서 실행 중인 RabbitMQ를 브로커로 설정
 app = Celery('tasks')
-app.conf.broker_url = "amqp://user:password@rabbitmq:5672//"
+app.conf.broker_url = "amqp://user:password@localhost:5672//"
 app.conf.broker_connection_retry_on_startup = True
 app.conf.broker_heartbeat = 600
 app.conf.broker_connection_timeout = 120  # 연결 시간 초과를 늘림

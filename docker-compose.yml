@@ -14,7 +14,7 @@ services:
               count: all
               capabilities: [gpu]
     environment:
-      - CELERY_BROKER_URL=amqp://user:password@localhost:5672//
+      - CELERY_BROKER_URL=amqp://user:password@rabbitmq:5672//
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_VISIBLE_DEVICES=0
@@ -24,6 +24,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy  # RabbitMQ가 준비될 때까지 대기
+    networks:
+      - app_network
 
   rabbitmq:
     image: rabbitmq:3.13.7-management
@@ -38,3 +40,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge

@@ -80,8 +80,8 @@ def seamless_tiling(pipeline, x_axis, y_axis):
 
     return pipeline
 
-@app.task
-def generate_and_send_image(prompt_id, image_data, user_id, options):
+@app.task(bind=True, max_retries=0)
+def generate_and_send_image(self, prompt_id, image_data, user_id, options):
     try:
         logging.info(f"Received prompt_id: ({type(prompt_id)}){prompt_id}, user_id: ({type(user_id)}){user_id}, options: {options}")
 
@@ -140,6 +140,9 @@ def generate_and_send_image(prompt_id, image_data, user_id, options):
     except Exception as e:
         logging.error(f"Error in generate_and_send_image: {e}")
         raise e
+    
+    finally:
+        self.request.delivery_info['requeue'] = False
 
 def save_image_to_database(prompt_id, user_id, image_blob):
     try:

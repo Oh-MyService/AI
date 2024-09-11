@@ -90,7 +90,8 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
                 pipeline=prepare_pipeline("stabilityai/sdxl-turbo"), 
                 x_axis=True, 
                 y_axis=True
-                )
+            )
+            
     except Exception as e:
         logging.error(f"Error in loading pipeline: {e}")
         raise e

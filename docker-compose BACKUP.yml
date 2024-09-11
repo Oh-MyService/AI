@@ -21,13 +21,6 @@ services:
       - CUDA_LAUNCH_BLOCKING=1
     ports:
       - "27272:8000"  # FastAPI 포트
-    shm_size: '32g'  # docker run에서 정의된 공유 메모리 크기
-    ulimits:
-      memlock: -1  # 메모리 락 해제
-      stack: 67108864  # 스택 크기 제한
-    dns:
-      - 8.8.8.8  # Google DNS
-      - 1.1.1.1  # Cloudflare DNS
     depends_on:
       rabbitmq:
         condition: service_healthy  # RabbitMQ가 준비될 때까지 대기

@@ -13,6 +13,15 @@ from celery import Celery
 import json
 from typing import Optional 
 
+# MySQL 데이터베이스 설정
+db_config = {
+    'host': '43.202.57.225',
+    'port': 21212,
+    'user': 'root',
+    'password': 'root',  # 실제 비밀번호를 사용하세요
+    'database': 'ohmyservice_database'  # 사용할 데이터베이스 이름
+}
+
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 
@@ -25,34 +34,24 @@ else:
 
 # 로컬에서 실행 중인 RabbitMQ를 브로커로 설정
 app = Celery('tasks')
-app.conf.broker_url = "amqp://user:password@rabbitmq:5672//"
-app.conf.broker_connection_retry_on_startup = True
-app.conf.broker_heartbeat = None
-#app.conf.broker_connection_timeout = 600  # 연결 시간 초과를 늘림
-app.conf.task_acks_late = True
-#app.conf.task_reject_on_worker_lost = True
-#app.conf.worker_cancel_long_running_tasks_on_connection_loss=True
-app.conf.worker_prefetch_multiplier=1
-
-
-# MySQL 데이터베이스 설정
-db_config = {
-    'host': '43.202.57.225',
-    'port': 21212,
-    'user': 'root',
-    'password': 'root',  # 실제 비밀번호를 사용하세요
-    'database': 'ohmyservice_database'  # 사용할 데이터베이스 이름
-}
+app.conf.update(
+    broker_connection_retry_on_startup=True,
+    broker_pool_limit=None,
+    task_acks_late=True,
+    broker_heartbeat=None,
+    worker_prefetch_multiplier=1,
+)
 
 # Init pipeline
+pipeline = None
 
-# 모델 로드
-model_name = "stabilityai/sdxl-turbo"
-pipeline = DiffusionPipeline.from_pretrained(
-    model_name, 
-    torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
-    variant="fp16"  # 16-bit floating point 사용
-).to('cuda')
+def prepare_pipeline(model_name):
+    pipeline = DiffusionPipeline.from_pretrained(
+        model_name, 
+        torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
+        variant="fp16"  # 16-bit floating point 사용
+    ).to('cuda')
+    return pipeline
 
 def seamless_tiling(pipeline, x_axis, y_axis):
     def asymmetric_conv2d_convforward(self, input: torch.Tensor, weight: torch.Tensor, bias: Optional[torch.Tensor] = None):
@@ -81,14 +80,24 @@ def seamless_tiling(pipeline, x_axis, y_axis):
 
     return pipeline
 
-@app.task(bind=True, max_retries=0)
+@app.task(bind=True, max_retries=0, acks_late=True)
 def generate_and_send_image(self, prompt_id, image_data, user_id, options):
+    # set pipeline
+    try:
+        global pipeline
+        if pipeline is None:
+            pipeline = seamless_tiling(
+                pipeline=prepare_pipeline("stabilityai/sdxl-turbo"), 
+                x_axis=True, 
+                y_axis=True
+                )
+    except Exception as e:
+        logging.error(f"Error in loading pipeline: {e}")
+        raise e
+
+    # create image
     try:
         logging.info(f"Received prompt_id: ({type(prompt_id)}){prompt_id}, user_id: ({type(user_id)}){user_id}, options: {options}")
-
-        # Set seamless tiling
-        global pipeline
-        pipeline = seamless_tiling(pipeline=pipeline, x_axis=True, y_axis=True)
 
         # 임의의 값 설정
         width = options["width"]
@@ -129,9 +138,6 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
 
             logging.info(f"Image {i+1} saved to database with result_id: {result_id}")
 
-        # Reset seamless tiling
-        #seamless_tiling(pipeline=pipeline, x_axis=False, y_axis=False)
-
         torch.cuda.empty_cache()
 
         logging.info(f"Images and settings saved to {output_dir}")
@@ -141,9 +147,6 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
     except Exception as e:
         logging.error(f"Error in generate_and_send_image: {e}")
         raise e
-    
-    finally:
-        self.request.delivery_info['requeue'] = False
 
 def save_image_to_database(prompt_id, user_id, image_blob):
     try:

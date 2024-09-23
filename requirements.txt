@@ -14,3 +14,4 @@ requests==2.31.0
 #kombu==5.4.0
 torch==2.2.0
 numpy==1.26.4
+minio

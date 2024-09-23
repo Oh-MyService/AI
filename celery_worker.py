@@ -3,6 +3,8 @@
 
 import os
 import logging
+from minio import Minio
+from minio.error import S3Error
 import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
@@ -21,6 +23,15 @@ db_config = {
     'password': 'root',  # 실제 비밀번호를 사용하세요
     'database': 'ohmyservice_database'  # 사용할 데이터베이스 이름
 }
+
+# MinIO 클라이언트 설정
+minio_client = Minio(
+    "118.67.128.129:9000",
+    access_key="minio",
+    secret_key="minio1234",
+    secure=False
+)
+bucket_name = "test"
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -80,6 +91,18 @@ def seamless_tiling(pipeline, x_axis, y_axis):
 
     return pipeline
 
+def upload_image_to_minio(image_path, image_name):
+    try:
+        # 이미지 파일을 MinIO에 업로드
+        minio_client.fput_object(bucket_name, image_name, image_path)
+        logging.info(f"Image {image_name} uploaded to MinIO")
+        
+        # 이미지 URL 반환
+        image_url = minio_client.presigned_get_object(bucket_name, image_name)
+        return image_url
+    except S3Error as e:
+        logging.error(f"Error uploading image to MinIO: {e}")
+
 @app.task(bind=True, max_retries=0, acks_late=True)
 def generate_and_send_image(self, prompt_id, image_data, user_id, options):
     # set pipeline
@@ -130,12 +153,14 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
             image_filename = os.path.join(output_dir, f'image_{i+1}.png')
             image.save(image_filename)
 
-            # Save image to database
-            with open(image_filename, 'rb') as img_file:
-                image_blob = img_file.read()
-                result_id = save_image_to_database(prompt_id, user_id, image_blob)
-                img_file.close()  # Ensure the file is closed before deleting
-                os.remove(image_filename)
+            # MinIO에 이미지 업로드
+            image_url = upload_image_to_minio(image_filename, f'image_{i+1}.png')
+
+            # 데이터베이스에 URL 저장
+            result_id = save_image_url_to_database(prompt_id, user_id, image_url)
+            logging.info(f"Image {i+1} URL saved to database with result_id: {result_id}")
+
+            os.remove(image_filename)
 
             logging.info(f"Image {i+1} saved to database with result_id: {result_id}")
 
@@ -149,33 +174,26 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         logging.error(f"Error in generate_and_send_image: {e}")
         raise e
 
-def save_image_to_database(prompt_id, user_id, image_blob):
+def save_image_url_to_database(prompt_id, user_id, image_url):
     try:
-        # MySQL 데이터베이스에 연결
         connection = mysql.connector.connect(**db_config)
         if connection.is_connected():
             cursor = connection.cursor()
 
-            # 이미지 저장을 위한 SQL 쿼리
             insert_query = """
             INSERT INTO results (prompt_id, user_id, image_data, created_at) 
             VALUES (%s, %s, %s, %s)
             """
-            # 현재 시간
             created_at = datetime.now()
-
-            # 이미지와 프롬프트 ID를 데이터베이스에 저장
-            cursor.execute(insert_query, (prompt_id, user_id, image_blob, created_at))
+            cursor.execute(insert_query, (prompt_id, user_id, image_url, created_at))
             connection.commit()
 
-            # 결과 ID 반환
             result_id = cursor.lastrowid
-
-            logging.info("Image data inserted into MySQL database successfully")
+            logging.info("Image URL inserted into MySQL database successfully")
 
             return result_id
 
-    except Error as e:
+    except mysql.connector.Error as e:
         logging.error(f"Error connecting to MySQL: {e}")
         raise e
 

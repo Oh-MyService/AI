@@ -91,17 +91,22 @@ def seamless_tiling(pipeline, x_axis, y_axis):
 
     return pipeline
 
-def upload_image_to_minio(image_path, image_name):
+def upload_image_to_minio(image_path, image_name, user_id, prompt_id):
     try:
-        # 이미지 파일을 MinIO에 업로드
-        minio_client.fput_object(bucket_name, image_name, image_path)
-        logging.info(f"Image {image_name} uploaded to MinIO")
+        # 사용자 ID와 프롬프트 ID를 사용 -> 고유 경로 생성
+        folder_path = f"{user_id}/{prompt_id}/"
+        full_image_name = folder_path + image_name
         
-        # 이미지 URL 반환
-        image_url = minio_client.presigned_get_object(bucket_name, image_name)
+        # 이미지 파일을 MinIO에 업로드
+        minio_client.fput_object(bucket_name, full_image_name, image_path)
+        logging.info(f"Image {full_image_name} uploaded to MinIO")
+        
+        # 업로드된 이미지의 URL 생성
+        image_url = minio_client.presigned_get_object(bucket_name, full_image_name)
         return image_url
     except S3Error as e:
         logging.error(f"Error uploading image to MinIO: {e}")
+        raise e
 
 @app.task(bind=True, max_retries=0, acks_late=True)
 def generate_and_send_image(self, prompt_id, image_data, user_id, options):
@@ -153,8 +158,8 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
             image_filename = os.path.join(output_dir, f'image_{i+1}.png')
             image.save(image_filename)
 
-            # MinIO에 이미지 업로드
-            image_url = upload_image_to_minio(image_filename, f'image_{i+1}.png')
+            # MinIO에 이미지 업로드 
+            image_url = upload_image_to_minio(image_filename, f'image_{i+1}.png', user_id, prompt_id)
 
             # 데이터베이스에 URL 저장
             result_id = save_image_url_to_database(prompt_id, user_id, image_url)

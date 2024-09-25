@@ -50,12 +50,9 @@ async def generate_image(request: PromptRequest):
     try:
         logging.info(f"Calling Celery task with prompt_id: {request.prompt_id}, content: {request.content}")
         
-        # Celery 작업을 비동기적으로 호출할 때 JWT 토큰을 함께 전달
-        task = generate_and_send_image.apply_sync(
-            prompt_id=request.prompt_id,
-            image_data=request.content,
-            user_id=request.user_id,
-            options=dict(request.ai_option)  # ai_option을 딕셔너리로 변환하여 전달
+        # Celery 작업을 비동기적으로 호출 (apply_async 사용)
+        task = generate_and_send_image.apply_async(
+            args=(request.prompt_id, request.content, request.user_id, dict(request.ai_option))
         )
         
         logging.info(f"Celery task started with task_id: {task.id}")

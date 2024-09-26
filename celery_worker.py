@@ -1,5 +1,5 @@
-#celery_worker.py
-#celery -A celery_worker worker --loglevel=info -P solo
+# celery_worker.py
+# celery -A celery_worker worker --loglevel=info -P solo
 
 import os
 import logging
@@ -8,12 +8,14 @@ from minio.error import S3Error
 import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
+import time  # 시간 측정을 위한 time 모듈 추가
 import torch
 from diffusers import DiffusionPipeline
 from diffusers.models.lora import LoRACompatibleConv
 from celery import Celery
 import json
-from typing import Optional 
+from typing import Optional
+import redis  # Redis 라이브러리 추가
 
 # MySQL 데이터베이스 설정
 db_config = {
@@ -43,7 +45,7 @@ if torch.cuda.is_available():
 else:
     logging.info("GPU is not available, using CPU instead.")
 
-# 로컬에서 실행 중인 RabbitMQ를 브로커로 설정
+# Redis를 백엔드로 사용하도록 Celery 설정
 app = Celery('tasks', broker='amqp://guest:guest@118.67.128.129:5672//', backend='redis://118.67.128.129:6379/0')
 app.conf.update(
     broker_connection_retry_on_startup=True,
@@ -52,6 +54,9 @@ app.conf.update(
     broker_heartbeat=None,
     worker_prefetch_multiplier=1,
 )
+
+# Redis 클라이언트 초기화
+redis_client = redis.Redis(host='118.67.128.129', port=6379, db=0)
 
 # Init pipeline
 pipeline = None
@@ -124,6 +129,9 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         logging.error(f"Error in loading pipeline: {e}")
         raise e
 
+    # 이미지 생성 프로세스 시작 시간 기록
+    start_time = time.time()
+
     # create image
     try:
         logging.info(f"Received prompt_id: ({type(prompt_id)}){prompt_id}, user_id: ({type(user_id)}){user_id}, options: {options}")
@@ -132,17 +140,49 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         width = options["width"]
         height = options["height"]
         num_inference_steps = options["sampling_steps"]
-        guidance_scale = 7.0#float(options["cfg_scale"])
+        guidance_scale = 7.0  # float(options["cfg_scale"])
         num_images_per_prompt = 4
         seed = options["seed"]  # 고정된 시드를 사용하여 결과를 재현 가능하게 설정
         generator = torch.Generator(device='cuda').manual_seed(seed)
 
         pos_prompt = "seamless " + image_data + " pattern, fabric textiled pattern"
-        neg_prompt = "irregular shape, deformed, asymmetrical, wavy lines, blurred, low quality,on fabric, real photo, shadow, cracked, text"
+        neg_prompt = "irregular shape, deformed, asymmetrical, wavy lines, blurred, low quality, on fabric, real photo, shadow, cracked, text"
 
         output_dir = '.'
 
-        # Generate images using AI model
+        # Callback 함수 정의
+        def progress_callback(step, timestep, latents):
+            current_time = time.time()
+            elapsed_time = current_time - start_time
+            progress_fraction = (step + 1) / num_inference_steps
+            progress = progress_fraction * 100  # 퍼센트 계산
+
+            if progress_fraction > 0:
+                estimated_total_time = elapsed_time / progress_fraction
+                estimated_remaining_time = estimated_total_time - elapsed_time
+            else:
+                estimated_remaining_time = None
+
+            # 시간을 시, 분, 초로 변환
+            if estimated_remaining_time is not None:
+                eta_hours, rem = divmod(estimated_remaining_time, 3600)
+                eta_minutes, eta_seconds = divmod(rem, 60)
+                eta_formatted = f"{int(eta_hours):02d}:{int(eta_minutes):02d}:{int(eta_seconds):02d}"
+            else:
+                eta_formatted = "Unknown"
+
+            logging.info(f"Step {step + 1}/{num_inference_steps} - Progress: {progress:.2f}% - Estimated remaining time: {eta_formatted}")
+
+            # 진척도와 예상 남은 시간을 Redis에 저장 (Celery 작업 ID를 키로 사용)
+            task_id = self.request.id
+            redis_key = f"task_progress:{task_id}"
+            redis_data = {
+                'progress': progress,
+                'estimated_remaining_time': eta_formatted
+            }
+            redis_client.set(redis_key, json.dumps(redis_data))
+
+        # Generate images using AI model with progress callback
         images = pipeline(
             prompt=pos_prompt,
             negative_prompt=neg_prompt, 
@@ -151,7 +191,9 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
             num_images_per_prompt=num_images_per_prompt,
-            generator=generator
+            generator=generator,
+            callback=progress_callback,  # 여기에 callback 추가
+            callback_steps=1  # 모든 스텝에서 호출
         ).images
 
         for i, image in enumerate(images):

@@ -12,7 +12,8 @@ WORKDIR /app
 
 # requirements.txt 파일을 복사하고, 필요한 패키지를 설치
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir --no-require-hashes -r requirements.txt
+RUN pip3 install --upgrade pip
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # 애플리케이션 파일을 복사
 COPY . .

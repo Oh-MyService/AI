@@ -181,6 +181,9 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
                 'estimated_remaining_time': eta_formatted
             }
             redis_client.set(redis_key, json.dumps(redis_data))
+            
+            # 빈 딕셔너리 반환하여 오류 방지
+            return {}
 
         # Generate images using AI model with progress callback
         images = pipeline(

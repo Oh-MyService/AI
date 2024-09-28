@@ -140,7 +140,7 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         width = options["width"]
         height = options["height"]
         num_inference_steps = options["sampling_steps"]
-        guidance_scale = 7.0  # float(options["cfg_scale"])
+        guidance_scale = options["cfg_scale"]
         num_images_per_prompt = 4
         seed = options["seed"]  # 고정된 시드를 사용하여 결과를 재현 가능하게 설정
         generator = torch.Generator(device='cuda').manual_seed(seed)

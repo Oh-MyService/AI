@@ -151,7 +151,7 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         output_dir = '.'
 
         # Callback 함수 정의
-        def progress_callback(step, timestep, latents):
+        def progress_callback(pipeline, step, timestep, extra_step_kwargs):
             current_time = time.time()
             elapsed_time = current_time - start_time
             progress_fraction = (step + 1) / num_inference_steps

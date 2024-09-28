@@ -62,7 +62,7 @@ redis_client = redis.Redis(host='118.67.128.129', port=6379, db=0)
 pipeline = None
 
 def prepare_pipeline(model_name):
-    pipeline = DiffusionPipeline.from_single_file(
+    pipeline = DiffusionPipeline.from_pretrained(
         model_name, 
         torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
         variant="fp16"  # 16-bit floating point 사용

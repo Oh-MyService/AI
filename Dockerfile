@@ -7,6 +7,9 @@ FROM python:3.12.5-slim
 #    libjpeg-dev \
 #    && apt-get clean
 
+RUN mkdir -p /etc/pip
+RUN echo "[global]\nrequire-hashes = false" > /etc/pip/pip.conf
+
 # 작업 디렉토리 설정
 WORKDIR /app
 

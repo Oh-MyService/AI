@@ -10,7 +10,7 @@ from mysql.connector import Error
 from datetime import datetime
 import time  # 시간 측정을 위한 time 모듈 추가
 import torch
-from diffusers import StableDiffusionPipeline
+from diffusers import StableDiffusionXLPipeline
 from diffusers.models.lora import LoRACompatibleConv
 from celery import Celery
 import json
@@ -62,7 +62,7 @@ redis_client = redis.Redis(host='118.67.128.129', port=6379, db=0)
 pipeline = None
 
 def prepare_pipeline(model_name):
-    pipeline = StableDiffusionPipeline.from_single_file(
+    pipeline = StableDiffusionXLPipeline.from_single_file(
         model_name, 
         torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
         variant="fp16"  # 16-bit floating point 사용
@@ -185,15 +185,16 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         # Generate images using AI model with progress callback
         images = pipeline(
             prompt=pos_prompt,
-            negative_prompt=neg_prompt, 
+            prompt_2="",
+            negative_prompt=neg_prompt,
+            negative_prompt_2="",
             width=width,
             height=height,
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
             num_images_per_prompt=num_images_per_prompt,
             generator=generator,
-            callback=progress_callback,  # 여기에 callback 추가
-            callback_steps=1  # 모든 스텝에서 호출
+            callback_on_step_end=progress_callback
         ).images
 
         for i, image in enumerate(images):

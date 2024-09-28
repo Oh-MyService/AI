@@ -10,7 +10,7 @@ from mysql.connector import Error
 from datetime import datetime
 import time  # 시간 측정을 위한 time 모듈 추가
 import torch
-from diffusers import DiffusionPipeline
+from diffusers import StableDiffusionPipeline
 from diffusers.models.lora import LoRACompatibleConv
 from celery import Celery
 import json
@@ -62,7 +62,7 @@ redis_client = redis.Redis(host='118.67.128.129', port=6379, db=0)
 pipeline = None
 
 def prepare_pipeline(model_name):
-    pipeline = DiffusionPipeline.from_pretrained(
+    pipeline = StableDiffusionPipeline.from_single_file(
         model_name, 
         torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
         variant="fp16"  # 16-bit floating point 사용

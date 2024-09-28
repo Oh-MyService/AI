@@ -120,7 +120,7 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         global pipeline
         if pipeline is None:
             pipeline = seamless_tiling(
-                pipeline=prepare_pipeline("/mnt/temp/juggernautXL_v9Rdphoto2Lightning.safetensors"), 
+                pipeline=prepare_pipeline("/mnt/temp/prefectPonyXL_v3.safetensors"), 
                 x_axis=True, 
                 y_axis=True
             )

@@ -62,7 +62,7 @@ redis_client = redis.Redis(host='118.67.128.129', port=6379, db=0)
 pipeline = None
 
 def prepare_pipeline(model_name):
-    pipeline = DiffusionPipeline.from_pretrained(
+    pipeline = DiffusionPipeline.from_single_file(
         model_name, 
         torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
         variant="fp16"  # 16-bit floating point 사용
@@ -120,7 +120,7 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         global pipeline
         if pipeline is None:
             pipeline = seamless_tiling(
-                pipeline=prepare_pipeline("stabilityai/sdxl-turbo"), 
+                pipeline=prepare_pipeline("/mnt/temp/juggernautXL_v9Rdphoto2Lightning.safetensors"), 
                 x_axis=True, 
                 y_axis=True
             )

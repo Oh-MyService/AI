@@ -174,8 +174,8 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
             logging.info(f"Step {step + 1}/{num_inference_steps} - Progress: {progress:.2f}% - Estimated remaining time: {eta_formatted}")
 
             # 진척도와 예상 남은 시간을 Redis에 저장 (Celery 작업 ID를 키로 사용)
-            task_id = self.request.id
-            redis_key = f"task_progress:{task_id}"
+            #task_id = self.request.id
+            redis_key = f"task_progress:{prompt_id}"
             redis_data = {
                 'progress': progress,
                 'estimated_remaining_time': eta_formatted

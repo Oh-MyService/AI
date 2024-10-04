@@ -119,7 +119,7 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         global pipeline
         if pipeline is None:
             pipeline = seamless_tiling(
-                pipeline=prepare_pipeline("/mnt/temp/StS_PonyXL_Detail_Slider_v1.4_iteration_3.safetensors"), 
+                pipeline=prepare_pipeline("/mnt/temp/ponyDiffusionV6XL_v6StartWithThisOne.safetensors"), 
                 x_axis=True, 
                 y_axis=True
             )

@@ -9,6 +9,8 @@ from celery.result import AsyncResult
 from celery_worker import generate_and_send_image, app as celery_app
 import logging
 from datetime import datetime
+from celery_worker import update_prompt_with_task_id
+
 
 app = FastAPI()
 
@@ -50,17 +52,22 @@ async def generate_image(request: PromptRequest):
     try:
         logging.info(f"Calling Celery task with prompt_id: {request.prompt_id}, content: {request.content}")
         
-        # Celery 작업을 비동기적으로 호출 (apply_async 사용)
+        # Celery 작업을 비동기적으로 호출
         task = generate_and_send_image.apply_async(
             args=(request.prompt_id, request.content, request.user_id, dict(request.ai_option))
         )
         
         logging.info(f"Celery task started with task_id: {task.id}")
+        
+        # task_id를 데이터베이스에 저장
+        update_prompt_with_task_id(request.prompt_id, task.id)
+        
         return {"message": "Image generation started", "task_id": task.id, "prompt_id": request.prompt_id}
     
     except Exception as e:
         logging.error(f"Error generating image: {e}")
         raise HTTPException(status_code=500, detail="Failed to start image generation")
+
 
 @app.get("/task-status/{task_id}")
 async def get_task_status(task_id: str):

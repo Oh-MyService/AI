@@ -8,7 +8,6 @@ from minio.error import S3Error
 import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
-import time  # 시간 측정을 위한 time 모듈 추가
 import torch
 from diffusers import StableDiffusionXLPipeline
 from diffusers.models.lora import LoRACompatibleConv
@@ -129,15 +128,6 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         logging.error(f"Error in loading pipeline: {e}")
         raise e
 
-    # Celery 작업 ID 가져오기
-    task_id = self.request.id
-
-    # 데이터베이스에 task_id 업데이트
-    update_prompt_with_task_id(prompt_id, task_id)
-
-    # 이미지 생성 프로세스 시작 시간 기록
-    start_time = time.time()
-
     # create image
     try:
         logging.info(f"Received prompt_id: {prompt_id}, user_id: {user_id}, task_id: {task_id}, options: {options}")
@@ -180,8 +170,8 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
             logging.info(f"Step {step + 1}/{num_inference_steps} - Progress: {progress:.2f}% - Estimated remaining time: {eta_formatted}")
 
             # 진척도와 예상 남은 시간을 Redis에 저장 (Celery 작업 ID를 키로 사용)
-            #task_id = self.request.id
-            redis_key = f"task_progress:{prompt_id}"
+            task_id = self.request.id
+            redis_key = f"task_progress:{task_id}"
             redis_data = {
                 'progress': progress,
                 'estimated_remaining_time': eta_formatted
@@ -262,28 +252,3 @@ def save_image_url_to_database(prompt_id, user_id, image_url):
             connection.close()
             logging.info("MySQL connection closed")
 
-
-### task_id 디비 추가 ###  
-def update_prompt_with_task_id(prompt_id, task_id):
-    try:
-        connection = mysql.connector.connect(**db_config)
-        if connection.is_connected():
-            cursor = connection.cursor()
-
-            update_query = """
-            UPDATE prompts SET task_id = %s WHERE id = %s
-            """
-            cursor.execute(update_query, (task_id, prompt_id))
-            connection.commit()
-
-            logging.info(f"task_id {task_id} updated successfully for prompt_id {prompt_id}")
-    
-    except mysql.connector.Error as e:
-        logging.error(f"Error updating task_id in MySQL: {e}")
-        raise e
-    
-    finally:
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
-            logging.info("MySQL connection closed")

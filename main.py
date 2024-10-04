@@ -9,7 +9,8 @@ from celery.result import AsyncResult
 from celery_worker import generate_and_send_image, app as celery_app
 import logging
 from datetime import datetime
-from celery_worker import update_prompt_with_task_id
+import mysql.connector
+from mysql.connector import Error
 
 
 app = FastAPI()
@@ -25,6 +26,15 @@ app.add_middleware(
     allow_methods=["*"],  # 모든 HTTP 메서드를 허용
     allow_headers=["*"],  # 모든 HTTP 헤더를 허용
 )
+
+# MySQL 데이터베이스 설정
+db_config = {
+    'host': '118.67.128.129',
+    'port': 21212,
+    'user': 'root',
+    'password': 'root',  # 실제 비밀번호를 사용하세요
+    'database': 'ohmyservice_database'  # 사용할 데이터베이스 이름
+}
 
 # OAuth2PasswordBearer 설정
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -47,6 +57,31 @@ class PromptRequest(BaseModel):
     content: str
     ai_option: AIOption
 
+### task_id 디비 추가 ###  
+def update_prompt_with_task_id(prompt_id, task_id):
+    try:
+        connection = mysql.connector.connect(**db_config)
+        if connection.is_connected():
+            cursor = connection.cursor()
+
+            update_query = """
+            UPDATE prompts SET task_id = %s WHERE id = %s
+            """
+            cursor.execute(update_query, (task_id, prompt_id))
+            connection.commit()
+
+            logging.info(f"task_id {task_id} updated successfully for prompt_id {prompt_id}")
+    
+    except mysql.connector.Error as e:
+        logging.error(f"Error updating task_id in MySQL: {e}")
+        raise e
+    
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+            logging.info("MySQL connection closed")
+
 @app.post("/generate-image")
 async def generate_image(request: PromptRequest):
     try:
@@ -58,8 +93,8 @@ async def generate_image(request: PromptRequest):
         )
         
         logging.info(f"Celery task started with task_id: {task.id}")
-        
-        # task_id를 데이터베이스에 저장
+
+        # 데이터베이스에 task_id 업데이트
         update_prompt_with_task_id(request.prompt_id, task.id)
         
         return {"message": "Image generation started", "task_id": task.id, "prompt_id": request.prompt_id}

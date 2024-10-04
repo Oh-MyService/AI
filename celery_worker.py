@@ -19,7 +19,7 @@ import redis  # Redis 라이브러리 추가
 
 # MySQL 데이터베이스 설정
 db_config = {
-    'host': '43.202.57.225',
+    'host': '118.67.128.129',
     'port': 21212,
     'user': 'root',
     'password': 'root',  # 실제 비밀번호를 사용하세요
@@ -129,12 +129,18 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         logging.error(f"Error in loading pipeline: {e}")
         raise e
 
+    # Celery 작업 ID 가져오기
+    task_id = self.request.id
+
+    # 데이터베이스에 task_id 업데이트
+    update_prompt_with_task_id(prompt_id, task_id)
+
     # 이미지 생성 프로세스 시작 시간 기록
     start_time = time.time()
 
     # create image
     try:
-        logging.info(f"Received prompt_id: ({type(prompt_id)}){prompt_id}, user_id: ({type(user_id)}){user_id}, options: {options}")
+        logging.info(f"Received prompt_id: {prompt_id}, user_id: {user_id}, task_id: {task_id}, options: {options}")
 
         # 임의의 값 설정
         width = options["width"]
@@ -217,14 +223,16 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
 
         torch.cuda.empty_cache()
 
-        logging.info(f"Images and settings saved to {output_dir}")
-        
-        return {"message": "Images saved successfully", "result_ids": [result_id]}
+         # 성공적으로 이미지 생성 시 추가 처리
+        logging.info(f"Images saved successfully with task_id: {task_id}")
+        return {"message": "Images saved successfully", "task_id": task_id}
 
     except Exception as e:
         logging.error(f"Error in generate_and_send_image: {e}")
         raise e
 
+
+### minio 링크 디비 저장 ###
 def save_image_url_to_database(prompt_id, user_id, image_url):
     try:
         connection = mysql.connector.connect(**db_config)
@@ -248,6 +256,32 @@ def save_image_url_to_database(prompt_id, user_id, image_url):
         logging.error(f"Error connecting to MySQL: {e}")
         raise e
 
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+            logging.info("MySQL connection closed")
+
+
+### task_id 디비 추가 ###  
+def update_prompt_with_task_id(prompt_id, task_id):
+    try:
+        connection = mysql.connector.connect(**db_config)
+        if connection.is_connected():
+            cursor = connection.cursor()
+
+            update_query = """
+            UPDATE prompts SET task_id = %s WHERE id = %s
+            """
+            cursor.execute(update_query, (task_id, prompt_id))
+            connection.commit()
+
+            logging.info(f"task_id {task_id} updated successfully for prompt_id {prompt_id}")
+    
+    except mysql.connector.Error as e:
+        logging.error(f"Error updating task_id in MySQL: {e}")
+        raise e
+    
     finally:
         if connection.is_connected():
             cursor.close()

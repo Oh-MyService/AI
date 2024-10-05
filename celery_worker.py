@@ -213,6 +213,8 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
 
         torch.cuda.empty_cache()
 
+        task_id = self.request.id
+
          # 성공적으로 이미지 생성 시 추가 처리
         logging.info(f"Images saved successfully with task_id: {task_id}")
         return {"message": "Images saved successfully", "task_id": task_id}

@@ -15,6 +15,7 @@ from celery import Celery
 import json
 from typing import Optional
 import redis  # Redis 라이브러리 추가
+import time
 
 # MySQL 데이터베이스 설정
 db_config = {
@@ -128,6 +129,8 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         logging.error(f"Error in loading pipeline: {e}")
         raise e
 
+    task_id = self.request.id
+    start_time = time.time()
     # create image
     try:
         logging.info(f"Received prompt_id: {prompt_id}, user_id: {user_id}, task_id: {task_id}, options: {options}")
@@ -170,7 +173,6 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
             logging.info(f"Step {step + 1}/{num_inference_steps} - Progress: {progress:.2f}% - Estimated remaining time: {eta_formatted}")
 
             # 진척도와 예상 남은 시간을 Redis에 저장 (Celery 작업 ID를 키로 사용)
-            task_id = self.request.id
             redis_key = f"task_progress:{task_id}"
             redis_data = {
                 'progress': progress,
@@ -213,9 +215,7 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
 
         torch.cuda.empty_cache()
 
-        task_id = self.request.id
-
-         # 성공적으로 이미지 생성 시 추가 처리
+        # 성공적으로 이미지 생성 시 추가 처리
         logging.info(f"Images saved successfully with task_id: {task_id}")
         return {"message": "Images saved successfully", "task_id": task_id}
 

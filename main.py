@@ -44,17 +44,20 @@ class AIOption(BaseModel):
     width: int
     height: int
     background_color: str
-    pattern: int
     mood: str
     cfg_scale: float
     sampling_steps: int
     seed: int
 
+class Content(BaseModel):
+    positive_prompt: str
+    negative_prompt: str
+
 # PromptRequest 모델 생성
 class PromptRequest(BaseModel):
     user_id: int
     prompt_id: int
-    content: str
+    content: Content
     ai_option: AIOption
 
 ### task_id 디비 추가 ###  
@@ -89,7 +92,7 @@ async def generate_image(request: PromptRequest):
         
         # Celery 작업을 비동기적으로 호출
         task = generate_and_send_image.apply_async(
-            args=(request.prompt_id, request.content, request.user_id, dict(request.ai_option))
+            args=(request.prompt_id, dict(request.content), request.user_id, dict(request.ai_option))
         )
         
         logging.info(f"Celery task started with task_id: {task.id}")

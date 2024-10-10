@@ -11,6 +11,7 @@ import logging
 from datetime import datetime
 import mysql.connector
 from mysql.connector import Error
+from kombu import Connection
 
 
 app = FastAPI()
@@ -110,13 +111,30 @@ async def generate_image(request: PromptRequest):
 @app.get("/task-status/{task_id}")
 async def get_task_status(task_id: str):
     task_result = AsyncResult(task_id, app=celery_app)
+    queue_name = 'your_queue_name'  # 실제 큐 이름으로 변경하세요
     
+    # 작업 위치를 계산하는 함수
+    def get_task_position(task_id: str, queue_name: str):
+        with Connection(celery_app.conf.broker_url) as conn:
+            queue = conn.SimpleQueue(queue_name)
+            position = 0
+            for message in queue:
+                if message.payload.get('id') == task_id:
+                    queue.close()
+                    return position
+                position += 1
+            queue.close()
+        return None
+
+    position = get_task_position(task_id, queue_name)
+    
+    # 작업 상태 및 위치 반환
     if task_result.state == 'PENDING':
-        return {"status": "PENDING"}
+        return {"status": "PENDING", "position": position}
     elif task_result.state == 'FAILURE':
-        return {"status": "FAILURE", "details": str(task_result.info)}
+        return {"status": "FAILURE", "details": str(task_result.info), "position": position}
     elif task_result.state == 'SUCCESS':
         logging.info(f"Task {task_id} completed successfully.")
         return {"status": "SUCCESS", "message": "Image generation completed"}
     else:
-        return {"status": task_result.state}
+        return {"status": task_result.state, "position": position}

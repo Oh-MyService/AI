@@ -112,13 +112,16 @@ async def generate_image(request: PromptRequest):
 async def get_task_status(task_id: str):
     task_result = AsyncResult(task_id, app=celery_app)
     queue_name = 'your_queue_name'  # 실제 큐 이름으로 변경하세요
-    
+
     # 작업 위치를 계산하는 함수
     def get_task_position(task_id: str, queue_name: str):
         with Connection(celery_app.conf.broker_url) as conn:
             queue = conn.SimpleQueue(queue_name)
             position = 0
-            for message in queue:
+            while True:
+                message = queue.get(block=False)  # 블록하지 않고 메시지를 가져옴
+                if message is None:
+                    break
                 if message.payload.get('id') == task_id:
                     queue.close()
                     return position

@@ -25,4 +25,4 @@ COPY . .
 EXPOSE 8000
 
 # 컨테이너 시작 시 FastAPI와 Celery를 동시에 실행
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port 8000 & celery -A celery_worker worker --loglevel=info --pool=solo"]
+CMD ["celery -A celery_worker worker --loglevel=info --pool=solo"]

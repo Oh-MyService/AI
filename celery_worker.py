@@ -64,7 +64,7 @@ pipeline = None
 def prepare_pipeline(model_name):
     pipeline = StableDiffusionXLPipeline.from_single_file(
         model_name, 
-        torch_dtype=torch.float16,  # float16 사용으로 GPU 메모리 효율화
+        torch_dtype=torch.bfloat16,  # float16 사용으로 GPU 메모리 효율화
         variant="fp16"  # 16-bit floating point 사용
     ).to('cuda')
     return pipeline

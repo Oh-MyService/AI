@@ -25,4 +25,5 @@ COPY . .
 EXPOSE 8000
 
 # 컨테이너 시작 시 FastAPI와 Celery를 동시에 실행
-CMD ["celery -A celery_worker worker --loglevel=info --pool=solo"]
+CMD ["celery", "-A", "celery_worker", "worker", "--loglevel=info", "--pool=solo"]
+

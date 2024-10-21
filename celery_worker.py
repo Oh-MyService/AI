@@ -215,7 +215,9 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
 
         torch.cuda.empty_cache()
 
+
         # 성공적으로 이미지 생성 시 추가 처리
+        update_task_status_in_database(task_id, 'success')
         logging.info(f"Images saved successfully with task_id: {task_id}")
         return {"message": "Images saved successfully", "task_id": task_id}
 
@@ -254,3 +256,27 @@ def save_image_url_to_database(prompt_id, user_id, image_url):
             connection.close()
             logging.info("MySQL connection closed")
 
+### Task의 상태 업데이트 함수 ###
+def update_task_status_in_database(task_id, status):
+    try:
+        connection = mysql.connector.connect(**db_config)
+        if connection.is_connected():
+            cursor = connection.cursor()
+
+            update_query = """
+            UPDATE prompts SET status = %s WHERE task_id = %s
+            """
+            cursor.execute(update_query, (status, task_id))
+            connection.commit()
+
+            logging.info(f"Task {task_id} status updated to {status}")
+
+    except mysql.connector.Error as e:
+        logging.error(f"Error connecting to MySQL: {e}")
+        raise e
+
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+            logging.info("MySQL connection closed")

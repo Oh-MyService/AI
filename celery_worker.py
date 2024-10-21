@@ -155,6 +155,8 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
             elapsed_time = current_time - start_time
             progress_fraction = (step + 1) / num_inference_steps
             progress = progress_fraction * 100  # 퍼센트 계산
+            if step == 0:
+                progress = 0
 
             if progress_fraction > 0:
                 estimated_total_time = elapsed_time / progress_fraction

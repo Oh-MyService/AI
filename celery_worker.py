@@ -170,7 +170,7 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
                 eta_minutes, eta_seconds = divmod(rem, 60)
                 eta_formatted = f"{int(eta_hours):02d}:{int(eta_minutes):02d}:{int(eta_seconds):02d}"
             else:
-                eta_formatted = "Unknown"
+                eta_formatted = f"{100:02d}:{0:02d}:{0:02d}"
 
             logging.info(f"Step {step + 1}/{num_inference_steps} - Progress: {progress:.2f}% - Estimated remaining time: {eta_formatted}")
 

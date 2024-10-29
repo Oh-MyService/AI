@@ -144,7 +144,7 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         seed = options["seed"]  # 고정된 시드를 사용하여 결과를 재현 가능하게 설정
         generator = torch.Generator(device='cuda').manual_seed(seed)
 
-        pos_prompt = image_data["positive_prompt"]
+        pos_prompt = image_data["modified_prompt"]
         neg_prompt = image_data["negative_prompt"]
 
         output_dir = '.'
@@ -201,7 +201,7 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         ).images
 
         for i, image in enumerate(images):
-            image_filename = os.path.join(output_dir, f'image_{i+1}.png')
+            image_filename = os.path.join(output_dir, f'image_{i+1}.webp')
             image.save(image_filename)
 
             # MinIO에 이미지 업로드 

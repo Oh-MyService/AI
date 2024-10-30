@@ -9,7 +9,7 @@ import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
 import torch
-from diffusers import StableDiffusionXLPipeline
+from diffusers import StableDiffusionXLPipeline, DPMSolverMultistepScheduler
 from diffusers.models.lora import LoRACompatibleConv
 from celery import Celery
 import json
@@ -67,6 +67,9 @@ def prepare_pipeline(model_name):
         torch_dtype=torch.bfloat16,  # float16 사용으로 GPU 메모리 효율화
         variant="fp16"  # 16-bit floating point 사용
     ).to('cuda')
+    scheduler_config = pipeline.scheduler.config
+    scheduler_config["algorithm_type"] = "sde-dpmsolver++"
+    pipeline.scheduler = DPMSolverMultistepScheduler.from_config(scheduler_config)
     return pipeline
 
 def seamless_tiling(pipeline, x_axis, y_axis):

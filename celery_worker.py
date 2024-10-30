@@ -205,7 +205,7 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
             image_filename = os.path.join(output_dir, f'image_{i+1}.webp')
             image.save(image_filename)
 
-            if image["nsfw_content_detected"]:
+            if i["nsfw_content_detected"]:
                 image_filename = os.path.join(output_dir, f'unsafe.png')
 
             # MinIO에 이미지 업로드 

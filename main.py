@@ -53,6 +53,7 @@ class AIOption(BaseModel):
 class Content(BaseModel):
     positive_prompt: str
     negative_prompt: str
+    modified_prompt: str
 
 # PromptRequest 모델 생성
 class PromptRequest(BaseModel):

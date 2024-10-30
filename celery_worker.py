@@ -9,7 +9,7 @@ import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
 import torch
-from diffusers import StableDiffusionXLPipeline
+from diffusers import StableDiffusionPipeline
 from diffusers.models.lora import LoRACompatibleConv
 from celery import Celery
 import json
@@ -62,7 +62,7 @@ redis_client = redis.Redis(host='118.67.128.129', port=6379, db=0)
 pipeline = None
 
 def prepare_pipeline(model_name):
-    pipeline = StableDiffusionXLPipeline.from_single_file(
+    pipeline = StableDiffusionPipeline.from_single_file(
         model_name, 
         torch_dtype=torch.bfloat16,  # float16 사용으로 GPU 메모리 효율화
         variant="fp16"  # 16-bit floating point 사용
@@ -120,7 +120,7 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         global pipeline
         if pipeline is None:
             pipeline = seamless_tiling(
-                pipeline=prepare_pipeline("/mnt/temp/ponyDiffusionV6XL_v6StartWithThisOne.safetensors"), 
+                pipeline=prepare_pipeline("/mnt/temp/kp.safetensors"), 
                 x_axis=True, 
                 y_axis=True
             )
@@ -188,9 +188,7 @@ def generate_and_send_image(self, prompt_id, image_data, user_id, options):
         # Generate images using AI model with progress callback
         images = pipeline(
             prompt=pos_prompt,
-            prompt_2="",
             negative_prompt=neg_prompt,
-            negative_prompt_2="",
             width=width,
             height=height,
             num_inference_steps=num_inference_steps,
